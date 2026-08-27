@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Contribution, HandoffDocument, ReadSection } from "../shared/schema.ts";
 import { decryptDocument, encryptDocument, importKey, readKeyFromFragment } from "./crypto.ts";
 import { fetchHandoff, updateHandoff, VersionConflictError } from "./api.ts";
-import { applyContribution, describeContribution, StaleBaseError } from "./contribution.ts";
+import { applyContribution, describeContribution } from "./contribution.ts";
 import { downloadFile, toMarkdown, toPortableJson } from "./export.ts";
 import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
 import { ErrorNote, HistoryView, StateView, ToolStatus, UntrustedBadge } from "./ui.tsx";
@@ -72,11 +72,15 @@ export function HandoffPage({ id }: { id: string }) {
         const current = latest.current.doc;
         if (!current) throw new Error("This handoff has not finished decrypting yet.");
         if (contribution.baseVersion !== current.version) {
-          throw new StaleBaseError(contribution.baseVersion, current.version);
+          return { status: "refused" as const, reason: "stale_base" as const, currentVersion: current.version };
         }
         setError(null);
         setStaged(contribution);
-        return { baseVersion: contribution.baseVersion, operationCount: contribution.operations.length };
+        return {
+          status: "staged" as const,
+          baseVersion: contribution.baseVersion,
+          operationCount: contribution.operations.length,
+        };
       },
     };
     let controller: AbortController | null = null;

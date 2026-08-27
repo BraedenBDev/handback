@@ -25,7 +25,11 @@ export type WebMcpBridge = {
   stageHandoff(state: HandoffState): void;
   getReceipt(): { status: "pending" | "created"; url?: string; version?: number };
   readHandoff(sections: ReadSection[]): Record<string, unknown> | { error: string };
-  stageContribution(contribution: Contribution): { baseVersion: number; operationCount: number };
+  stageContribution(
+    contribution: Contribution,
+  ):
+    | { status: "staged"; baseVersion: number; operationCount: number }
+    | { status: "refused"; reason: "stale_base"; currentVersion: number };
 };
 
 type ModelContext = {
@@ -112,6 +116,18 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
     annotations: { readOnlyHint: false, untrustedContentHint: true },
     execute: async (contribution: Contribution) => {
       const staged = bridge.stageContribution(contribution);
+      // A refusal is RETURNED, not thrown. WebMCP collapses a thrown error into
+      // a generic "the script function threw an error", which tells the calling
+      // agent nothing it can act on. Handing back the current version lets it
+      // re-read and propose again without a human having to intervene.
+      if (staged.status === "refused") {
+        return {
+          status: "refused",
+          reason: "stale_base",
+          currentVersion: staged.currentVersion,
+          message: `This handoff is at version ${staged.currentVersion}. Call read_handoff again and re-propose against that version.`,
+        };
+      }
       return {
         status: "staged_awaiting_human_approval",
         baseVersion: staged.baseVersion,
