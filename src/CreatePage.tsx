@@ -14,7 +14,7 @@ export function CreatePage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [webMcp] = useState(isWebMcpAvailable);
+  const [webMcp, setWebMcp] = useState(isWebMcpAvailable);
 
   // The tools read live state through a ref so registration happens once per
   // document (re-registering a name throws) while still seeing current values.
@@ -41,7 +41,13 @@ export function CreatePage() {
       }),
     };
     let controller: AbortController | null = null;
-    registerHandbackTools(bridge).then((result) => (controller = result));
+    registerHandbackTools(bridge).then((result) => {
+      controller = result;
+      // An extension can install WebMCP after this page decided it was absent.
+      // Reflect that, rather than leaving the banner telling the user to go
+      // enable something that is already working.
+      if (result) setWebMcp(true);
+    });
     return () => controller?.abort();
   }, []);
 

@@ -15,7 +15,7 @@ export function HandoffPage({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [webMcp] = useState(isWebMcpAvailable);
+  const [webMcp, setWebMcp] = useState(isWebMcpAvailable);
 
   // The content key, imported once from the fragment and reused for every later
   // write. Regenerating it on update would invalidate the link already handed
@@ -96,7 +96,13 @@ export function HandoffPage({ id }: { id: string }) {
       },
     };
     let controller: AbortController | null = null;
-    registerHandbackTools(bridge).then((result) => (controller = result));
+    registerHandbackTools(bridge).then((result) => {
+      controller = result;
+      // An extension can install WebMCP after this page decided it was absent.
+      // Reflect that, rather than leaving the banner telling the user to go
+      // enable something that is already working.
+      if (result) setWebMcp(true);
+    });
     return () => controller?.abort();
   }, []);
 

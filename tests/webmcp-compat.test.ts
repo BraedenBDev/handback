@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { clampForAgent, isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "../src/webmcp.ts";
+import { clampForAgent, isWebMcpAvailable, registerHandbackTools, toToolResult, type WebMcpBridge } from "../src/webmcp.ts";
 import { HANDOFF_STATE_SCHEMA, CONTRIBUTION_SCHEMA } from "../shared/schema.ts";
+import { unwrap } from "./tool-result.ts";
 
 /**
  * Cross-client compatibility, asserted against what the specs and shipped
@@ -73,9 +74,18 @@ describe("entry point, across every place it has lived", () => {
   });
 
   it("ignores a placeholder object that has no registerTool", async () => {
+    // Angular's DOM-clobbering guard: <form id="modelContext"> makes
+    // document.modelContext a truthy Element rather than a ModelContext.
     (document as any).modelContext = { getTools: () => [] };
     expect(isWebMcpAvailable()).toBe(false);
-    await expect(registerHandbackTools(bridge())).resolves.toBeNull();
+    vi.useFakeTimers();
+    try {
+      const pending = registerHandbackTools(bridge());
+      await vi.advanceTimersByTimeAsync(11_000);
+      await expect(pending).resolves.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does not fall back to window.agent, a name abandoned in 2025 that never shipped", async () => {
@@ -87,7 +97,14 @@ describe("entry point, across every place it has lived", () => {
 
   it("reports unavailable rather than throwing when there is no WebMCP at all", async () => {
     expect(isWebMcpAvailable()).toBe(false);
-    await expect(registerHandbackTools(bridge())).resolves.toBeNull();
+    vi.useFakeTimers();
+    try {
+      const pending = registerHandbackTools(bridge());
+      await vi.advanceTimersByTimeAsync(11_000);
+      await expect(pending).resolves.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -199,7 +216,7 @@ describe("failures are returned, never thrown", () => {
     await registerHandbackTools(
       bridge({ stageHandoff: () => ({ status: "refused", reason: "wrong_page", message: "Open a handoff link first." }) }),
     );
-    const result = await registered.find((t) => t.name === "stage_handoff")!.execute({ objective: "o", summary: "s" });
+    const result = unwrap(await registered.find((t) => t.name === "stage_handoff")!.execute({ objective: "o", summary: "s" }));
     expect(result).toMatchObject({ status: "refused", reason: "wrong_page" });
     expect(result.message).toMatch(/Open a handoff link/);
   });
@@ -252,5 +269,67 @@ describe("output stays inside the documented budget", () => {
 
   it("passes an error result through without mangling it", () => {
     expect(clampForAgent({ error: "nothing open" })).toEqual({ error: "nothing open" });
+  });
+});
+
+describe("results are shaped for clients that expect MCP content blocks", () => {
+  // Chrome's own demos return bare objects and the spec accepts anything
+  // JSON-serialisable, but every wrapper written for reuse across unknown
+  // clients — Google's use-webmcp-tool, @mcp-b/webmcp-polyfill, MCPCat,
+  // vue-webmcp — converges on content blocks. This page does not know which
+  // agent is reading it, so it normalises too.
+  it("wraps a message result in a text content block, keeping the data structured", () => {
+    const result = toToolResult({ status: "refused", message: "Open a handoff link first." }) as any;
+    expect(result.content).toEqual([{ type: "text", text: "Open a handoff link first." }]);
+    expect(result.structuredContent).toMatchObject({ status: "refused" });
+  });
+
+  it("serialises a data-only result into the text block without duplicating it", () => {
+    const result = toToolResult({ version: 2, objective: "Ship" }) as any;
+    expect(JSON.parse(result.content[0].text)).toEqual({ version: 2, objective: "Ship" });
+    // No structuredContent here: it would double the payload against the budget.
+    expect(result.structuredContent).toBeUndefined();
+  });
+
+  it("passes an already MCP-shaped value straight through", () => {
+    const already = { content: [{ type: "text", text: "done" }], isError: false };
+    expect(toToolResult(already)).toBe(already);
+  });
+
+  it("keeps a clamped read inside the output budget after wrapping", () => {
+    const huge = { version: 1, summary: "y".repeat(9000), sources: Array.from({ length: 100 }, () => ({ title: "t", url: "u" })) };
+    const wrapped = toToolResult(clampForAgent(huge));
+    expect(JSON.stringify(wrapped).length).toBeLessThanOrEqual(2200);
+  });
+});
+
+describe("an API injected after mount is still picked up", () => {
+  // Extension-based clients install modelContext from a content script, which
+  // can land after this page has already concluded WebMCP is absent.
+  it("waits for a late injection and then registers", async () => {
+    vi.useFakeTimers();
+    try {
+      const { registered, context } = fakeContext();
+      const pending = registerHandbackTools(bridge());
+      expect(registered).toHaveLength(0);
+
+      (document as any).modelContext = context;
+      await vi.advanceTimersByTimeAsync(600);
+      await pending;
+      expect(registered).toHaveLength(4);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("gives up after ten seconds rather than polling forever", async () => {
+    vi.useFakeTimers();
+    try {
+      const pending = registerHandbackTools(bridge());
+      await vi.advanceTimersByTimeAsync(11_000);
+      await expect(pending).resolves.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

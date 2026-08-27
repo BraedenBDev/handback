@@ -50,7 +50,12 @@ const callTool = (page: Page, name: string, input: unknown) =>
       const mc = (document as any).modelContext;
       const tools = await mc.getTools();
       const tool = tools.find((t: any) => t.name === toolName);
-      return JSON.parse(await mc.executeTool(tool, payload as string));
+      const raw = JSON.parse(await mc.executeTool(tool, payload as string));
+      // Tools normalise to MCP content blocks; read them as a client would.
+      if (raw?.structuredContent !== undefined) return raw.structuredContent;
+      const text = raw?.content?.[0]?.text;
+      if (typeof text !== "string") return raw;
+      try { return JSON.parse(text); } catch { return text; }
     },
     [name, JSON.stringify(input)] as const,
   );

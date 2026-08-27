@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "../src/webmcp.ts";
 import { CONTRIBUTION_SCHEMA, HANDOFF_STATE_SCHEMA } from "../shared/schema.ts";
 import { validate } from "../shared/validate.ts";
+import { unwrap } from "./tool-result.ts";
 
 /**
  * A fake modelContext that mirrors the real one verified against Chrome 149:
@@ -68,7 +69,14 @@ describe("tool registration", () => {
   });
 
   it("returns null and registers nothing when WebMCP is absent", async () => {
-    await expect(registerHandbackTools(makeBridge())).resolves.toBeNull();
+    vi.useFakeTimers();
+    try {
+      const pending = registerHandbackTools(makeBridge());
+      await vi.advanceTimersByTimeAsync(11_000);
+      await expect(pending).resolves.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("exposes no tool that could approve, commit or delete", async () => {
@@ -124,7 +132,7 @@ describe("tool behaviour", () => {
     const stageHandoff = vi.fn();
     await registerHandbackTools(makeBridge({ stageHandoff }));
     const tool = registered.find((t) => t.name === "stage_handoff")!;
-    const result = await tool.execute({ objective: "o", summary: "s" });
+    const result = unwrap(await tool.execute({ objective: "o", summary: "s" }));
     expect(stageHandoff).toHaveBeenCalledWith({ objective: "o", summary: "s" });
     expect(result.status).toBe("staged_awaiting_human_approval");
     expect(JSON.stringify(result)).not.toMatch(/created|http/i);
@@ -138,7 +146,7 @@ describe("tool behaviour", () => {
       makeBridge({ stageContribution: () => ({ status: "refused", reason: "stale_base", currentVersion: 7 }) }),
     );
     const tool = registered.find((t) => t.name === "stage_contribution")!;
-    const result = await tool.execute({ baseVersion: 2, note: "n", operations: [{ op: "add_task", value: "v" }] });
+    const result = unwrap(await tool.execute({ baseVersion: 2, note: "n", operations: [{ op: "add_task", value: "v" }] }));
     expect(result).toMatchObject({ status: "refused", reason: "stale_base", currentVersion: 7 });
     expect(result.message).toMatch(/version 7/);
   });
