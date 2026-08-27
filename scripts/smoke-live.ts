@@ -74,6 +74,21 @@ const final = await decryptDocument(
 );
 check("original link still decrypts at v2", final.version === 2 && final.state.tasks?.[0]?.status === "done");
 
+// Append-only history: every version must still be readable and decryptable.
+const firstVersion = await fetch(`${base}/api/h/${id}?version=1`);
+check("earlier version is still retrievable", firstVersion.status === 200);
+const firstDoc = await decryptDocument(key, ((await firstVersion.json()) as any).envelope);
+check("earlier version still decrypts with the same key", firstDoc.version === 1 && firstDoc.state.tasks?.[0]?.status === "in_progress");
+
+const listed = await fetch(`${base}/api/h/${id}/versions`);
+const versions = ((await listed.json()) as any).versions.map((v: any) => v.version);
+check("versions endpoint lists every version held", JSON.stringify(versions) === "[1,2]");
+
+const missingVersionRead = await fetch(`${base}/api/h/${id}?version=99`);
+check("unknown version 404s", missingVersionRead.status === 404);
+const badVersionRead = await fetch(`${base}/api/h/${id}?version=banana`);
+check("nonsense version 400s", badVersionRead.status === 400);
+
 const shell = await fetch(`${base}/h/${id}`);
 check("SPA route serves the app shell", shell.status === 200 && (await shell.text()).includes("<div id=\"root\">"));
 

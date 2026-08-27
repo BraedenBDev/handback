@@ -43,8 +43,12 @@ node scripts/smoke-live.ts https://handback.braeden-bihag.workers.dev
 ```
 
 The smoke script runs the whole lifecycle over the network — create, reopen from
-the link alone, contribute, the 409 lost-update guard, and the original link
-still decrypting at v2.
+the link alone, contribute, the 409 lost-update guard, retrieval and decryption
+of earlier versions, and the original link still decrypting at v2. 14 checks.
+
+Schema changes go in `migrations/` and are applied with
+`npx wrangler d1 execute handback --remote --file=./migrations/<file>.sql`.
+Migrations rename rather than drop, so they can be reversed.
 
 ## Running it
 
