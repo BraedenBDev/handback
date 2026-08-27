@@ -111,6 +111,60 @@ outside the approval path no longer matches its seal and the page says so. It is
 not a signature and proves nothing about authorship, only internal consistency,
 and the copy is careful not to imply more.
 
+## Client compatibility
+
+Established by reading the specifications and shipped implementations, not by
+clicking through browsers. Each claim below is encoded as a test in
+`tests/webmcp-compat.test.ts` so it cannot rot silently.
+
+**The entry point has moved twice.** `window.agent` (to Oct 2025) became
+`navigator.modelContext` (Feb 2026), then `document.modelContext` in
+[PR #184](https://github.com/webmachinelearning/webmcp/pull/184) on 2026-05-27,
+so that tools would be document-scoped rather than shared across a navigation.
+`document` is canonical, but `navigator.modelContext` is still what the official
+`@mcp-b/webmcp-polyfill` exposes as a deprecated alias, what Brave's shipped
+integration reads, and — verified on the live site — what Chrome 149 itself
+still exposes alongside `document`. Registration probes `document` first, then
+`navigator`, and checks for a callable `registerTool` rather than mere presence.
+`window.agent` is deliberately not probed: it never shipped in any browser.
+
+**Thrown errors are discarded by design.** The spec runs `completionSteps` with
+`(null, false)` and rejects with a bare `UnknownError`; making that granular is
+still an open TODO in `index.bs`. Chrome flattens it further, to "Tool was
+executed but the invocation failed". So no tool here throws. Every refusal is a
+returned value carrying a reason the agent can act on.
+
+**Output is clipped to Chrome's ~1.5K guidance.** The schema permits 100 sources
+and 50 decisions, so a full `read_handoff` is roughly 366,000 characters worst
+case. Truncation elsewhere would hand an agent a partial read it believes is
+complete, so it is clipped here, and says what it dropped.
+
+**Constraints observed:** tool names within the spec's hard 1–128 character
+limit and its `[A-Za-z0-9_.-]` charset (violations reject with
+`InvalidStateError`); Chrome's 30 / 500 / 150 character guidance for names,
+descriptions and parameter descriptions; and only the two annotations WebMCP
+actually defines, `readOnlyHint` and `untrustedContentHint`. MCP core's
+`destructiveHint`, `idempotentHint` and `openWorldHint` are not part of WebMCP's
+`ToolAnnotations` and would be dropped.
+
+**`Origin-Agent-Cluster: ?1` is sent on every page response.** WebMCP is
+disabled outright in a document whose agent cluster is not origin-keyed.
+
+**Return shape:** plain JSON, not MCP content blocks. WebMCP's `execute` is
+`Promise<any>` and the spec simply `JSON.stringify`s it. The repo README shows an
+MCP-style `content: [{type:"text"}]` example, but that is illustrative — Chrome's
+own documented samples return bare strings, and ChatGPT's Site tools take plain
+objects. Note this diverges from core MCP, where `CallToolResult.content` is
+required; a bridge exposing these tools over real MCP is responsible for
+wrapping them.
+
+**Known status at 2026-08-27:** Chrome origin trial 149–156 (expires
+2026-11-17), Edge origin trial from 150, ChatGPT's in-app browser supported,
+Brave experimental via Leo. Perplexity Comet and Claude in Chrome do *not*
+consume page-registered tools — Comet is an MCP client for external servers, and
+Anthropic declined the feature. Firefox and Safari are at standards-position
+discussion only.
+
 ## Security posture, stated honestly
 
 - **AES-256-GCM in the browser.** The key is generated at creation, lives in the URL fragment, and is reused for every later version. The fragment is never sent in an HTTP request.
