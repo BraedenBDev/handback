@@ -150,13 +150,29 @@ actually defines, `readOnlyHint` and `untrustedContentHint`. MCP core's
 **`Origin-Agent-Cluster: ?1` is sent on every page response.** WebMCP is
 disabled outright in a document whose agent cluster is not origin-keyed.
 
-**Return shape:** plain JSON, not MCP content blocks. WebMCP's `execute` is
-`Promise<any>` and the spec simply `JSON.stringify`s it. The repo README shows an
-MCP-style `content: [{type:"text"}]` example, but that is illustrative — Chrome's
-own documented samples return bare strings, and ChatGPT's Site tools take plain
-objects. Note this diverges from core MCP, where `CallToolResult.content` is
-required; a bridge exposing these tools over real MCP is responsible for
-wrapping them.
+**Return shape: MCP content blocks, normalised at the registration boundary.**
+The spec accepts anything JSON-serialisable (`execute` is `Promise<any>`, and the
+platform stringifies it), and Chrome's own demos return bare objects. But those
+demos are single pages that know their client. Every wrapper written for *reuse*
+across unknown clients converges on content blocks — Google's own
+`use-webmcp-tool`, `@mcp-b/webmcp-polyfill`'s normalizer, MCPCat's hook and
+`vue-webmcp` all landed on the same shape independently. This page is in that
+position, so it normalises too. `structuredContent` is attached only when the
+text is a human-readable message, so a large read is not serialised twice and
+pushed back over the output budget.
+
+**A late-injected API is still picked up.** Extension-based clients install
+`modelContext` from a content script, which can arrive after the page has
+already concluded WebMCP is absent — registering nothing, with no retry.
+Registration re-checks every 500ms for ten seconds, the interval Google's hook
+and `vue-webmcp` independently settled on, and the status banner updates if the
+API turns up late.
+
+**DOM clobbering is guarded.** A page containing `<form id="modelContext">` makes
+`document.modelContext` a truthy `Element`. `registerTool` is checked for being
+callable, not merely present. (Also note the getter lives on `Document.prototype`,
+so `Object.hasOwn(document, "modelContext")` silently returns false — direct
+property access is the correct probe.)
 
 **Known status at 2026-08-27:** Chrome origin trial 149–156 (expires
 2026-11-17), Edge origin trial from 150, ChatGPT's in-app browser supported,
