@@ -139,24 +139,9 @@ ChatGPT's in-app browser. Without either, the page still works: every flow has a
 visible manual form, contributions included. It just cannot be driven by an
 agent.
 
-**Verified against Chrome 149 on 2026-08-27.** All four tools register, and both
-staging tools were driven end to end through the real API. Two details the draft
-spec leaves out, both found the hard way:
-
-- `executeTool` takes the **`RegisteredTool` object** from `getTools()`, not a
-  name. A name throws `The provided value is not of type 'RegisteredTool'`.
-- The input must be a **JSON string**. An object throws `Failed to parse input
-  arguments`. The result comes back as a JSON string too.
-
-```js
-const tools = await document.modelContext.getTools();
-const tool = tools.find((t) => t.name === "stage_handoff");
-const result = JSON.parse(await document.modelContext.executeTool(tool, JSON.stringify(payload)));
-```
-
-`ModelContext` exposes `registerTool`, `getTools`, `executeTool` and
-`ontoolchange`. Treat all of it as unstable. WebMCP is a Draft Community Group
-Report, not a standard.
+Driving the tools from a console has two non-obvious requirements, and
+`ModelContext` is a moving target. See
+[docs/WEBMCP-COMPATIBILITY.md](docs/WEBMCP-COMPATIBILITY.md).
 
 ## Deploying
 
@@ -164,23 +149,16 @@ Production is a Cloudflare Worker with D1.
 
 ```bash
 npm run deploy
-npm run smoke      # 19 checks against the live deployment
+npm run smoke
 ```
 
-The smoke script runs the lifecycle over the network: create, reopen from the
-link alone, verify the seal, contribute, hit the 409 lost-update guard, retrieve
-and decrypt earlier versions, confirm the original link still opens at v2, and
-check both canonical-host redirects.
+The smoke script runs the whole lifecycle over the network: create, reopen from
+the link alone, verify the seal, contribute, hit the lost-update guard, retrieve
+and decrypt earlier versions, and confirm handoff pages carry `noindex`.
 
-`handback.link` is the only origin. A zone-level Single Redirect sends
-`www.handback.link` to it, keeping path and query, and browsers carry the
-fragment key across the hop themselves. That rule runs ahead of Workers, so
-those requests never invoke the script: 30 requests to `www` produced zero
-invocations when measured on 2026-08-27. Static assets are served by the edge
-without invoking the Worker either, which is why `run_worker_first` is off.
-
-The `workers.dev` subdomain is retired. Two live origins mint two sets of links
-for the same object, and a link is meant to be the one durable thing here.
+`handback.link` is the only origin. A zone-level Single Redirect sends `www` to
+it ahead of the Worker, so those requests never invoke the script, and static
+assets are served by the edge for the same reason.
 
 Schema changes live in `migrations/`:
 
@@ -190,120 +168,12 @@ npx wrangler d1 execute handback --remote --file=./migrations/<file>.sql
 
 Migrations rename rather than drop, so you can reverse them.
 
-## Design
+## Further reading
 
-The handoff's own words are set in a serif, because a person wrote them and
-another person has to read them. The machinery around them (labels, versions,
-keys, seals) is mono, because it is apparatus. You can tell which is which at a
-glance.
-
-Amber is the accent because it means *awaiting you*. The approval gate is the
-product, so the product's colour is the colour of something stopped, waiting for
-a person.
-
-Every version carries a **seal**: the first eight characters of a SHA-256 over
-its state, bound to its version number and its parent's hash. Edit a document
-outside the approval path and it stops matching its seal, and the page says so.
-It proves internal consistency and nothing about authorship. The copy takes care
-not to imply otherwise.
-
-## Client compatibility
-
-*For anyone implementing WebMCP. Skip it if you just want to use the thing.*
-
-Established by reading specifications and shipped implementations rather than
-clicking through browsers. Every claim below is a test in
-`tests/webmcp-compat.test.ts`, so it cannot rot without failing.
-
-**The entry point has moved twice.** `window.agent` (until Oct 2025) became
-`navigator.modelContext` (Feb 2026), then `document.modelContext` in
-[PR #184](https://github.com/webmachinelearning/webmcp/pull/184) on 2026-05-27,
-so that tools would be scoped to a document instead of shared across a
-navigation. `document` is canonical. But `navigator.modelContext` is what the
-official `@mcp-b/webmcp-polyfill` still exposes as a deprecated alias, what
-Brave's shipped integration reads, and (verified on the live site) what Chrome
-149 exposes alongside `document`. Registration probes `document`, then
-`navigator`, and checks that `registerTool` is callable rather than that the
-object exists. `window.agent` never shipped in a browser, so nothing probes it.
-
-**Thrown errors get discarded.** The spec runs `completionSteps` with
-`(null, false)` and rejects with a bare `UnknownError`; making that granular is
-an open TODO in `index.bs`. Chrome flattens it again, into "Tool was executed but
-the invocation failed". No tool here throws. Every refusal comes back as a value
-carrying a reason the agent can use.
-
-**Output pages rather than truncates.** Chrome guides around 1.5K characters per
-tool response, and the schema allows 100 sources and 50 decisions, putting a full
-`read_handoff` near 366,000 characters at worst. An earlier version dropped any
-section that would not fit. Since `summary` runs to 4,000 characters, it could
-never fit, so it vanished every time. A ChatGPT session hit that case, gave up
-on the tool, and scraped the rendered page instead. A reader that cannot return a
-field is worse than no reader. An oversized section now comes back cut to fit,
-with the offset to resume from. Asking for one section at a time is how you page.
-
-**Constraints observed:** tool names inside the spec's hard 1 to 128 character
-limit and its `[A-Za-z0-9_.-]` charset, which reject with `InvalidStateError`;
-Chrome's 30 / 500 / 150 character guidance for names, descriptions and parameter
-descriptions; and only the two annotations WebMCP defines, `readOnlyHint` and
-`untrustedContentHint`. MCP core's `destructiveHint`, `idempotentHint` and
-`openWorldHint` belong to a different type and get dropped.
-
-**Every page response sends `Origin-Agent-Cluster: ?1`.** A document whose agent
-cluster is not origin-keyed loses WebMCP altogether.
-
-**Results normalise to MCP content blocks at the registration boundary.** The
-spec takes anything JSON-serialisable, since `execute` is `Promise<any>` and the
-platform stringifies whatever it gets, and Chrome's demos return bare objects.
-Those demos are single pages that know their client. Wrappers written for reuse
-across unknown clients converge on content blocks instead: Google's
-`use-webmcp-tool`, the `@mcp-b/webmcp-polyfill` normalizer, MCPCat's hook and
-`vue-webmcp` all landed on the same shape without coordinating. This page does
-not know its client either. `structuredContent` rides along only when the text is
-a human-readable message, which keeps a large read from being serialised twice
-and blowing the budget.
-
-**A late-injected API still gets picked up.** Extension-based clients install
-`modelContext` from a content script, which can land after the page has already
-decided WebMCP is missing, registering nothing and never retrying. Registration
-re-checks every 500ms for ten seconds, the interval Google's hook and
-`vue-webmcp` arrived at separately, and the banner updates if the API shows up
-late.
-
-**DOM clobbering is guarded.** A page holding `<form id="modelContext">` turns
-`document.modelContext` into a truthy `Element`. The check is whether
-`registerTool` is callable. The getter also lives on `Document.prototype`, so
-`Object.hasOwn(document, "modelContext")` returns false and makes a poor probe.
-
-**Status at 2026-08-27:** Chrome origin trial 149 to 156, expiring 2026-11-17.
-Edge origin trial from 150. ChatGPT's in-app browser supported. Brave
-experimental through Leo. Perplexity Comet and Claude in Chrome do *not* consume
-page-registered tools: Comet is an MCP client for external servers, and Anthropic
-declined the feature. Firefox and Safari have only reached standards-position
-discussion.
-
-## Security posture, stated plainly
-
-- **AES-256-GCM in the browser.** The key is born at creation, lives in the URL
-  fragment, and serves every later version. Fragments never travel in an HTTP
-  request.
-- **The server holds an opaque id, a version number, and a ciphertext envelope.**
-  No titles, no summaries, no search index. `tests/worker/ciphertext.test.ts`
-  writes a known sentinel through the real flow, then reads every column of every
-  table in D1 to prove it is absent.
-- **Anyone holding the whole link can read the handoff.** It is a bearer
-  capability, like a password in a URL. That buys "no account required", and it
-  is a trade rather than an oversight.
-- **This is not zero-knowledge.** The server ships the JavaScript that encrypts.
-  A compromised server could serve code that leaks the key. Object size, timing
-  and IP stay visible to the host.
-- **Encryption does nothing about prompt injection.** A handoff carries text
-  other people's agents wrote. `read_handoff` marks it untrusted, the UI badges
-  it, and nothing in it counts as an instruction.
-- **The seal checks consistency. It is not a signature.** Anyone with the key can
-  recompute a valid one. It catches careless edits outside the approval path and
-  says nothing about who made a change.
-- **Contributions only add.** No delete operation exists, since a reviewer will
-  spot added text long before they notice text that went missing.
+- [SECURITY.md](SECURITY.md) covers what the encryption protects and what it does not.
+- [docs/WEBMCP-COMPATIBILITY.md](docs/WEBMCP-COMPATIBILITY.md) is for anyone implementing WebMCP: where the entry point has moved, what the output limits are, and why nothing here throws.
+- [docs/DESIGN.md](docs/DESIGN.md) explains the typography, the colour, and the seal.
+- [docs/PRIOR-ART-AND-NOGO.md](docs/PRIOR-ART-AND-NOGO.md) lists what was researched and rejected. Read it before proposing a feature.
 
 ## Layout
 
@@ -314,20 +184,16 @@ src/hash.ts          Content seals and the parent chain
 src/crypto.ts        AES-256-GCM, one key per handoff, reused across versions
 src/webmcp.ts        The four tool registrations
 src/contribution.ts  Pure apply-a-contribution logic
-worker/index.ts      The Cloudflare Worker: API, redirects, asset serving
-migrations/          Forward migrations; applied/ holds one-off history
-docs/                Product brief, spec, prior art, naming, WebMCP research
+worker/index.ts      The Cloudflare Worker: API and asset serving
+migrations/          Schema, applied in order to a fresh database
+docs/                Product brief, design, prior art, WebMCP compatibility
 ```
-
-Read `docs/PRIOR-ART-AND-NOGO.md` before proposing a feature. It lists what was
-researched, what was rejected, and why.
 
 ## Still to do
 
 - A YouTube demo under three minutes with audio, for the submission.
-- Automated browser checks. Both staging tools were driven through `executeTool`
-  by hand on 2026-08-27, on localhost and on the deployed origin, but no test
-  catches a regression there.
+- Automated browser checks against a real WebMCP client. The end-to-end suite
+  drives a faithful mock, so nothing catches a regression in a live browser.
 - An MCP adapter for agents outside a browser. A CLI agent currently needs the
   fragment key and its own decrypt, which is the "recipient must understand
   cryptography" failure `docs/PRIOR-ART-AND-NOGO.md` rules out.
