@@ -41,6 +41,21 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    // One canonical origin. WebMCP is origin-scoped and every handoff link is
+    // minted with whatever origin created it, so serving apex and www as two
+    // live origins would quietly produce two incompatible sets of links.
+    // The fragment key is never sent to the server, and browsers carry it
+    // across a redirect themselves, so #k=... survives this hop untouched.
+    const CANONICAL = "handback.link";
+    if (url.hostname !== CANONICAL && (url.hostname.startsWith("www.") || url.hostname.endsWith(".workers.dev"))) {
+      // workers.dev is kept alive and redirected rather than switched off:
+      // links minted there are real links, and a product whose promise is that
+      // work survives should not break its own URLs to tidy up a hostname.
+      // Path and query carry over, and the browser carries the fragment.
+      url.hostname = CANONICAL;
+      return Response.redirect(url.toString(), 301);
+    }
+
     if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
 
     if (url.pathname === "/api/h" && request.method === "POST") {

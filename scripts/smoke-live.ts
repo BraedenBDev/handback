@@ -6,6 +6,7 @@
  */
 import { decryptDocument, encryptDocument, exportKey, generateKey, importKey } from "../src/crypto.ts";
 import { applyContribution } from "../src/contribution.ts";
+import { stampDocument, verifyDocument } from "../src/hash.ts";
 import type { HandoffDocument } from "../shared/schema.ts";
 
 const base = process.argv[2] ?? "http://localhost:8787";
@@ -14,10 +15,10 @@ const check = (label: string, passed: boolean) => checks.push([label, passed]);
 
 const now = new Date().toISOString();
 const SENTINEL = `SMOKE-${now}`;
-const v1: HandoffDocument = {
+const v1: HandoffDocument = await stampDocument({
   state: { objective: `Live smoke ${SENTINEL}`, summary: "Written by scripts/smoke-live.ts", tasks: [{ title: "Deploy", status: "in_progress" }] },
-  version: 1, createdAt: now, updatedAt: now, history: [],
-};
+  version: 1, createdAt: now, updatedAt: now, parentHash: null, history: [],
+});
 
 const key = await generateKey();
 const created = await fetch(`${base}/api/h`, {
@@ -34,13 +35,15 @@ const fetched = await fetch(`${base}/api/h/${id}`);
 const stored = await fetched.json() as { version: number; envelope: any };
 const reopened = await decryptDocument(await importKey(new URL(link).hash.replace("#k=", "")), stored.envelope);
 check("reopened via link decrypts", reopened.state.objective === `Live smoke ${SENTINEL}`);
+check("its seal verifies after a network round trip", (await verifyDocument(reopened)) === "verified");
 check("server returned no plaintext", !JSON.stringify(stored).includes(SENTINEL));
 
 // Contribute against the correct version.
-const v2 = applyContribution(reopened, {
+const v2 = await stampDocument(applyContribution(reopened, {
   baseVersion: reopened.version, note: "smoke contribution",
   operations: [{ op: "set_task_status", value: "Deploy", status: "done" }],
-});
+}));
+check("the new version chains to its parent's seal", v2.parentHash === v1.contentHash);
 const put = await fetch(`${base}/api/h/${id}`, {
   method: "PUT", headers: { "content-type": "application/json" },
   body: JSON.stringify({ envelope: await encryptDocument(key, v2), expectedVersion: reopened.version }),
@@ -88,6 +91,18 @@ const missingVersionRead = await fetch(`${base}/api/h/${id}?version=99`);
 check("unknown version 404s", missingVersionRead.status === 404);
 const badVersionRead = await fetch(`${base}/api/h/${id}?version=banana`);
 check("nonsense version 400s", badVersionRead.status === 400);
+
+check("the contributed version seals cleanly", (await verifyDocument(final)) === "verified");
+
+// One canonical origin. Old links must redirect rather than break.
+for (const [label, host] of [
+  ["www redirects to the canonical host", "https://www.handback.link"],
+  ["workers.dev redirects to the canonical host", "https://handback.braeden-bihag.workers.dev"],
+] as const) {
+  const response = await fetch(`${host}/h/${id}`, { redirect: "manual" });
+  const target = response.headers.get("location") ?? "";
+  check(label, response.status === 301 && target === `https://handback.link/h/${id}`);
+}
 
 const shell = await fetch(`${base}/h/${id}`);
 check("SPA route serves the app shell", shell.status === 200 && (await shell.text()).includes("<div id=\"root\">"));

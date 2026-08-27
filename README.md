@@ -4,7 +4,7 @@
 
 At the end of a productive session with an agent, the useful part — the objective, the decisions and why they were made, the constraints, what is still open — is trapped in one provider's chat history. Handback turns it into one private link you own. Another person's agent can read that link, propose additions, and hand it back, with a human approving every change.
 
-**Live:** <https://handback.braeden-bihag.workers.dev>
+**Live:** <https://handback.link>
 
 Built for the [WebMCP Challenge](https://webmcp.devpost.com).
 
@@ -39,12 +39,19 @@ is what holds it to that.
 ```bash
 npm run build
 npx wrangler deploy
-node scripts/smoke-live.ts https://handback.braeden-bihag.workers.dev
+node scripts/smoke-live.ts https://handback.link
 ```
 
-The smoke script runs the whole lifecycle over the network — create, reopen from
-the link alone, contribute, the 409 lost-update guard, retrieval and decryption
-of earlier versions, and the original link still decrypting at v2. 14 checks.
+The smoke script runs the whole lifecycle over the network: create, reopen from
+the link alone, seal verification, contribute, the 409 lost-update guard,
+retrieval and decryption of earlier versions, the original link still decrypting
+at v2, and the canonical-host redirects. 19 checks.
+
+`handback.link` is canonical. `www.handback.link` and the old
+`handback.braeden-bihag.workers.dev` subdomain both stay reachable and 301 to it,
+preserving path, query and (client-side) the fragment key. The workers.dev host
+is kept alive on purpose: links minted there are real links, and a product whose
+promise is that work survives should not break its own URLs to tidy a hostname.
 
 Schema changes go in `migrations/` and are applied with
 `npx wrangler d1 execute handback --remote --file=./migrations/<file>.sql`.
@@ -135,7 +142,6 @@ docs/                Product brief, spec, prior art, naming, WebMCP research
 - Automate the browser checks. All four tools were driven through `executeTool`
   by hand on 2026-08-27, on both localhost and the deployed origin, but nothing
   guards against a regression.
-- Buy a real domain. `handback.link` was RDAP-available when checked on 08-27.
 - An MCP adapter for agents that are not in a browser. Today a CLI agent has to be handed the fragment key and write its own decrypt, which is exactly the "recipient must understand cryptography" failure `docs/PRIOR-ART-AND-NOGO.md` rules out.
 
 - Revocation and expiry.
