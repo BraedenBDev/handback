@@ -9,9 +9,10 @@
     // /h/<id> is a client route, so unknown paths must return the SPA shell.
     "not_found_handling": "single-page-application"
   },
-  // Apex is canonical. www and the workers.dev subdomain stay reachable so old
-  // links keep resolving, and the Worker 301s both to the canonical host.
-  "workers_dev": true,
+  // Apex is the only origin. www is handled by a zone-level Single Redirect
+  // that runs ahead of Workers, and the workers.dev subdomain is retired: two
+  // live origins mint two sets of links for the same object.
+  "workers_dev": false,
   "routes": [
     { "pattern": "handback.link", "custom_domain": true },
     { "pattern": "www.handback.link", "custom_domain": true }

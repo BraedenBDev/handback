@@ -94,15 +94,27 @@ check("nonsense version 400s", badVersionRead.status === 400);
 
 check("the contributed version seals cleanly", (await verifyDocument(final)) === "verified");
 
-// One canonical origin. Old links must redirect rather than break.
-for (const [label, host] of [
-  ["www redirects to the canonical host", "https://www.handback.link"],
-  ["workers.dev redirects to the canonical host", "https://handback.braeden-bihag.workers.dev"],
-] as const) {
-  const response = await fetch(`${host}/h/${id}`, { redirect: "manual" });
-  const target = response.headers.get("location") ?? "";
-  check(label, response.status === 301 && target === `https://handback.link/h/${id}`);
-}
+// One canonical origin. www redirects via a zone rule that runs ahead of the
+// Worker; the workers.dev subdomain is retired outright.
+const wwwRedirect = await fetch(`https://www.handback.link/h/${id}`, { redirect: "manual" });
+check(
+  "www redirects to the canonical host",
+  wwwRedirect.status === 301 && wwwRedirect.headers.get("location") === `https://handback.link/h/${id}`,
+);
+
+const retired = await fetch("https://handback.braeden-bihag.workers.dev/", { redirect: "manual" })
+  .then((r) => r.status)
+  .catch(() => 0);
+check("the workers.dev subdomain no longer serves", retired === 0 || retired >= 400);
+
+// Handoff pages must never become a search result.
+const handoffHeaders = await fetch(`${base}/h/${id}`);
+check(
+  "handoff pages are noindex",
+  (handoffHeaders.headers.get("x-robots-tag") ?? "").includes("noindex"),
+);
+const robots = await (await fetch(`${base}/robots.txt`)).text();
+check("robots.txt disallows handoff pages", robots.includes("Disallow: /h/"));
 
 const shell = await fetch(`${base}/h/${id}`);
 check("SPA route serves the app shell", shell.status === 200 && (await shell.text()).includes("<div id=\"root\">"));

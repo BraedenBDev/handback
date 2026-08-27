@@ -60,16 +60,6 @@ export default {
     // live origins would quietly produce two incompatible sets of links.
     // The fragment key is never sent to the server, and browsers carry it
     // across a redirect themselves, so #k=... survives this hop untouched.
-    // www is handled by a zone-level Single Redirect, which runs ahead of
-    // Workers and absorbs those requests without invoking this script (verified
-    // 2026-08-27: 30 requests to www produced 0 invocations). This branch still
-    // catches the workers.dev subdomain, whose /api/* traffic does reach here.
-    const CANONICAL = "handback.link";
-    if (url.hostname !== CANONICAL && (url.hostname.startsWith("www.") || url.hostname.endsWith(".workers.dev"))) {
-      url.hostname = CANONICAL;
-      return Response.redirect(url.toString(), 301);
-    }
-
     if (!url.pathname.startsWith("/api/")) return withAgentHeaders(await env.ASSETS.fetch(request));
 
     if (url.pathname === "/api/h" && request.method === "POST") {

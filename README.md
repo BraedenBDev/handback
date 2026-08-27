@@ -52,6 +52,46 @@ The round trip is the difference:
 - What comes back carries its own history: who changed what, against which
   version, sealed with a hash.
 
+## What using it looks like
+
+You have been working with an agent. You say:
+
+> Hand this off to Handback.
+
+It opens the page, packages what matters, and shows you a draft: the objective,
+what was decided and why, the constraints, what is still open. Nothing has been
+saved. You read it, cut the line you would rather not share, and click
+**Approve and create**.
+
+You get one link. That is the whole artifact. Close everything else.
+
+Send it to a friend, or keep it for yourself and open it next month. Whoever
+opens it points their agent at it and asks what they are picking up. The agent
+reads the state directly and continues, without re-deriving anything from a
+transcript.
+
+When they find something, their agent proposes it against the version they
+read. You see the change as a diff and decide. Every version is kept, so
+reopening the same link later shows you what happened while you were away.
+
+If clicking twice is friction you do not want, there is a switch. Flip it once
+and that browser stops asking.
+
+## Approval
+
+Your agent stages. You commit with a click.
+
+Per-device auto-approval trades the prompt for a switch. Flip it once and this
+browser stops asking: `stage_handoff` creates and hands your agent the link in
+the same call, `stage_contribution` writes the new version. Consent moves from
+per-action to per-device, the same shape as an "always allow" permission.
+
+That trade only works because storage appends. Every version's ciphertext
+survives, so anything written without a click is still readable at the version
+before it. You lose the prompt, not the record.
+
+Off by default. A visitor who has never chosen gets the gate.
+
 ## The agent-callable surface
 
 Four tools, registered on the page through `document.modelContext.registerTool`:
@@ -69,21 +109,6 @@ could call would dissolve it. `readOnlyHint` and `untrustedContentHint` are hint
 to the model, not enforcement, so treat them as documentation rather than a
 security control.
 
-## Approval
-
-Your agent stages. You commit with a click.
-
-Per-device auto-approval trades the prompt for a switch. Flip it once and this
-browser stops asking: `stage_handoff` creates and hands your agent the link in
-the same call, `stage_contribution` writes the new version. Consent moves from
-per-action to per-device, the same shape as an "always allow" permission.
-
-That trade only works because storage appends. Every version's ciphertext
-survives, so anything written without a click is still readable at the version
-before it. You lose the prompt, not the record.
-
-Off by default. A visitor who has never chosen gets the gate.
-
 ## Running it
 
 ```bash
@@ -95,7 +120,7 @@ With hot reload:
 
 ```bash
 npm run dev        # client on :5173, Worker API on :8787
-npm run test:all   # 165 node + 24 workerd + 34 end-to-end
+npm run test:all   # 165 node + 23 workerd + 34 end-to-end
 ```
 
 The suite doubles as the audit. It runs axe against both themes with zero
@@ -147,16 +172,15 @@ link alone, verify the seal, contribute, hit the 409 lost-update guard, retrieve
 and decrypt earlier versions, confirm the original link still opens at v2, and
 check both canonical-host redirects.
 
-`handback.link` is canonical. A zone-level Single Redirect sends
+`handback.link` is the only origin. A zone-level Single Redirect sends
 `www.handback.link` to it, keeping path and query, and browsers carry the
 fragment key across the hop themselves. That rule runs ahead of Workers, so
 those requests never invoke the script: 30 requests to `www` produced zero
 invocations when measured on 2026-08-27. Static assets are served by the edge
 without invoking the Worker either, which is why `run_worker_first` is off.
 
-The older `handback.braeden-bihag.workers.dev` host stays alive. Links minted
-there are real links, and a product promising that work survives should not
-break its own URLs for the sake of a tidy hostname.
+The `workers.dev` subdomain is retired. Two live origins mint two sets of links
+for the same object, and a link is meant to be the one durable thing here.
 
 Schema changes live in `migrations/`:
 
@@ -184,6 +208,8 @@ It proves internal consistency and nothing about authorship. The copy takes care
 not to imply otherwise.
 
 ## Client compatibility
+
+*For anyone implementing WebMCP. Skip it if you just want to use the thing.*
 
 Established by reading specifications and shipped implementations rather than
 clicking through browsers. Every claim below is a test in

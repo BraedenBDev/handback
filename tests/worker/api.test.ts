@@ -143,25 +143,30 @@ describe("append-only version history", () => {
   });
 });
 
-describe("canonical host", () => {
-  it("301s www to the apex, preserving path and query", async () => {
-    const response = await SELF.fetch("https://www.handback.link/h/abc?x=1", { redirect: "manual" });
-    expect(response.status).toBe(301);
-    expect(response.headers.get("location")).toBe("https://handback.link/h/abc?x=1");
-  });
-
-  it("301s the workers.dev subdomain to the apex", async () => {
-    const response = await SELF.fetch("https://handback.example.workers.dev/api/h", { redirect: "manual" });
-    expect(response.status).toBe(301);
-    expect(response.headers.get("location")).toBe("https://handback.link/api/h");
-  });
-
-  it("does not redirect the canonical host", async () => {
+describe("one origin", () => {
+  /**
+   * The canonical-host redirect used to live in this Worker. It moved to a
+   * zone-level Single Redirect, which runs ahead of Workers and never invokes
+   * this script (measured 2026-08-27: 30 requests to www, 0 invocations), and
+   * the workers.dev subdomain is retired. Neither is reachable from workerd, so
+   * scripts/smoke-live.ts covers them against the real deployment instead.
+   *
+   * What IS still this Worker's job is refusing to answer for a host it does
+   * not serve, so nothing here quietly becomes a second origin.
+   */
+  it("serves the API on the canonical host", async () => {
     expect((await get("/api/h/short")).status).toBe(400);
   });
 
-  it("rejects unsupported methods rather than redirecting them", async () => {
+  it("rejects unsupported methods rather than falling through", async () => {
     const response = await SELF.fetch(`${origin}/api/h/aaaaaaaaaaaaaaaaaa`, { method: "DELETE" });
     expect(response.status).toBe(404);
+  });
+
+  it("does not redirect anything itself any more", async () => {
+    for (const host of ["https://www.handback.link", "https://handback.example.workers.dev"]) {
+      const response = await SELF.fetch(`${host}/api/h/short`, { redirect: "manual" });
+      expect(response.status).not.toBe(301);
+    }
   });
 });
