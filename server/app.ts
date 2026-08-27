@@ -1,12 +1,9 @@
 import express from "express";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { Ajv } from "ajv";
 import { ENVELOPE_SCHEMA, type Envelope } from "../shared/schema.ts";
+import { validate } from "../shared/validate.ts";
 import { newHandoffId, openDatabase, type StoredEnvelope } from "./db.ts";
-
-const ajv = new Ajv({ allErrors: true });
-const validateEnvelope = ajv.compile(ENVELOPE_SCHEMA);
 
 const ID_PATTERN = /^[A-Za-z0-9_-]{16,64}$/;
 
@@ -27,9 +24,8 @@ export function createApp(databasePath?: string) {
 
   app.post("/api/h", (req, res) => {
     const envelope = req.body?.envelope;
-    if (!validateEnvelope(envelope)) {
-      return res.status(400).json({ error: "invalid_envelope", detail: ajv.errorsText(validateEnvelope.errors) });
-    }
+    const check = validate(envelope, ENVELOPE_SCHEMA);
+    if (!check.valid) return res.status(400).json({ error: "invalid_envelope", detail: check.errors });
     const id = newHandoffId();
     const now = new Date().toISOString();
     db.prepare("INSERT INTO handoffs (id, currentVersion, createdAt, updatedAt) VALUES (?, 1, ?, ?)").run(id, now, now);
@@ -72,9 +68,8 @@ export function createApp(databasePath?: string) {
     if (!ID_PATTERN.test(id)) return res.status(400).json({ error: "invalid_id" });
 
     const envelope = req.body?.envelope;
-    if (!validateEnvelope(envelope)) {
-      return res.status(400).json({ error: "invalid_envelope", detail: ajv.errorsText(validateEnvelope.errors) });
-    }
+    const check = validate(envelope, ENVELOPE_SCHEMA);
+    if (!check.valid) return res.status(400).json({ error: "invalid_envelope", detail: check.errors });
 
     // expectedVersion is required and ENFORCED. Accepting a version field and
     // then ignoring it turns concurrent contributions into silent lost updates.
