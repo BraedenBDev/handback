@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "handback",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // /h/<id> is a client route, so unknown paths must return the SPA shell.
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "handback",
+      "database_id": "86797b24-bbf8-4f6f-850a-1d552ca3cab0"
+    }
+  ],
+  "observability": { "enabled": true }
+}

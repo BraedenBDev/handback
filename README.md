@@ -4,6 +4,8 @@
 
 At the end of a productive session with an agent, the useful part — the objective, the decisions and why they were made, the constraints, what is still open — is trapped in one provider's chat history. Handback turns it into one private link you own. Another person's agent can read that link, propose additions, and hand it back, with a human approving every change.
 
+**Live:** <https://handback.braeden-bihag.workers.dev>
+
 Built for the [WebMCP Challenge](https://webmcp.devpost.com).
 
 ## What makes this a WebMCP product rather than a file export
@@ -27,6 +29,22 @@ Four tools, registered on the page via `document.modelContext.registerTool`:
 | `stage_contribution` | Stages a proposed diff against a base version | Commit it |
 
 **There is deliberately no `approve_*` or `commit_*` tool.** Creation and contribution approval are ordinary buttons a human clicks. That click is the entire consent boundary of the product, and an agent-callable approval would dissolve it. `readOnlyHint` and `untrustedContentHint` are hints to the agent, not enforcement — they are documentation here, not a security control.
+
+## Deploying
+
+Production runs on a Cloudflare Worker with D1. The Worker (`worker/index.ts`) is a
+port of the Express app and must keep the same semantics; `scripts/smoke-live.ts`
+is what holds it to that.
+
+```bash
+npm run build
+npx wrangler deploy
+node scripts/smoke-live.ts https://handback.braeden-bihag.workers.dev
+```
+
+The smoke script runs the whole lifecycle over the network — create, reopen from
+the link alone, contribute, the 409 lost-update guard, and the original link
+still decrypting at v2.
 
 ## Running it
 
@@ -84,8 +102,11 @@ docs/                Product brief, spec, prior art, naming, WebMCP research
 
 ## Still to do
 
-- Deploy to a public URL, needed for the hackathon submission.
-- Playwright smoke test driving a real Chrome with the WebMCP flag on (done manually 08-27, not yet automated).
+- A YouTube demo under three minutes with audio, for the submission.
+- Automate the browser checks. All four tools were driven through `executeTool`
+  by hand on 2026-08-27, on both localhost and the deployed origin, but nothing
+  guards against a regression.
+- Buy a real domain. `handback.link` was RDAP-available when checked on 08-27.
 - An MCP adapter for agents that are not in a browser. Today a CLI agent has to be handed the fragment key and write its own decrypt, which is exactly the "recipient must understand cryptography" failure `docs/PRIOR-ART-AND-NOGO.md` rules out.
 - Import a portable file back into a fresh instance (export works; import does not yet).
 - Revocation and expiry.
