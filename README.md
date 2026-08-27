@@ -4,7 +4,7 @@
 
 At the end of a productive session with an agent, the useful part — the objective, the decisions and why they were made, the constraints, what is still open — is trapped in one provider's chat history. Handback turns it into one private link you own. Another person's agent can read that link, propose additions, and hand it back, with a human approving every change.
 
-**Live:** <https://handback.link>
+**Live:** <https://handback.link> · **Source:** <https://github.com/BraedenBDev/handback>
 
 Built for the [WebMCP Challenge](https://webmcp.devpost.com).
 
@@ -111,6 +111,24 @@ outside the approval path no longer matches its seal and the page says so. It is
 not a signature and proves nothing about authorship, only internal consistency,
 and the copy is careful not to imply more.
 
+## Approval
+
+By default your agent *stages* and you commit with a click. That click is the
+consent boundary, and there is deliberately no agent-callable tool that can
+perform it.
+
+Per-device auto-approval relaxes the friction without removing the record. Flip
+the switch once and this browser stops asking: `stage_handoff` creates
+immediately and hands the agent the link, `stage_contribution` commits
+immediately. Consent moves from per-action to per-device, which is the same
+shape as an "always allow" permission.
+
+It is safe to offer because storage is append-only. Every version's ciphertext is
+kept, so anything committed without a click is still readable at the previous
+version and recoverable. Auto-approval removes the prompt, not the history.
+
+Off by default: a visitor who has never chosen gets the gate.
+
 ## Client compatibility
 
 Established by reading the specifications and shipped implementations, not by
@@ -134,10 +152,15 @@ still an open TODO in `index.bs`. Chrome flattens it further, to "Tool was
 executed but the invocation failed". So no tool here throws. Every refusal is a
 returned value carrying a reason the agent can act on.
 
-**Output is clipped to Chrome's ~1.5K guidance.** The schema permits 100 sources
-and 50 decisions, so a full `read_handoff` is roughly 366,000 characters worst
-case. Truncation elsewhere would hand an agent a partial read it believes is
-complete, so it is clipped here, and says what it dropped.
+**Output is paged, not truncated.** Chrome guides ~1.5K characters per tool
+response, and the schema permits 100 sources and 50 decisions, so a full
+`read_handoff` is roughly 366,000 characters worst case. An earlier version
+simply dropped any section that would not fit — and `summary` may be 4,000
+characters, so it could *never* fit. A real ChatGPT session hit exactly that,
+gave up on the tool and scraped the rendered page instead. A reader that
+silently cannot return a field is worse than no reader. An oversized single
+section is now returned, cut to fit, with the exact offset to resume from;
+asking for one section at a time is the paging mechanism.
 
 **Constraints observed:** tool names within the spec's hard 1–128 character
 limit and its `[A-Za-z0-9_.-]` charset (violations reject with
