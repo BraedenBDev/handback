@@ -28,7 +28,7 @@ describe("persistence holds ciphertext only", () => {
     const envelope = await encryptDocument(await generateKey(), doc);
     const created = await SELF.fetch("https://handback.link/api/h", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "CF-Connecting-IP": crypto.randomUUID() },
       body: JSON.stringify({ envelope }),
     });
     expect(created.status).toBe(201);
@@ -57,7 +57,7 @@ describe("persistence holds ciphertext only", () => {
     const envelope = { format: "handback-aes256gcm-v1", iv: "AAAAAAAAAAAAAAAA", ciphertext: "ZmFrZQ" };
     await SELF.fetch("https://handback.link/api/h", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "CF-Connecting-IP": crypto.randomUUID() },
       body: JSON.stringify({ envelope }),
     });
 

@@ -5,10 +5,11 @@ import worker from "../../worker/index.ts";
 const envelope = { format: "handback-aes256gcm-v1", iv: "AAAAAAAAAAAAAAAA", ciphertext: "ZmFrZQ" };
 const origin = "https://handback.link";
 
+// A fresh IP per call, for the same reason as tests/worker/api.test.ts.
 const create = async (retentionDays?: number | null) =>
   SELF.fetch(`${origin}/api/h`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "CF-Connecting-IP": crypto.randomUUID() },
     body: JSON.stringify(retentionDays === undefined ? { envelope } : { envelope, retentionDays }),
   });
 

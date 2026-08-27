@@ -133,7 +133,7 @@ With hot reload:
 
 ```bash
 npm run dev        # client on :5173, Worker API on :8787
-npm run test:all   # 165 node + 23 workerd + 34 end-to-end
+npm run test:all   # 181 node + 38 workerd + 44 end-to-end
 ```
 
 The suite doubles as the audit. It runs axe against both themes with zero

@@ -1,22 +1,23 @@
 /**
  * Production runtime: Cloudflare Worker + D1.
  *
- * This is a straight port of server/app.ts. The Express version stays as the
- * local dev server and as the thing the test suite pins the semantics to; this
- * one has to behave identically. The two that matter and are easy to get wrong:
- * expectedVersion is required and enforced, and the UPDATE repeats the version
+ * The two rules that matter most and are easy to get wrong: expectedVersion is
+ * required and enforced on every write, and the UPDATE repeats the version
  * check in its WHERE clause so two racing writers cannot both win.
  */
 import type { Envelope } from "../shared/schema.ts";
 import { DEFAULT_RETENTION_DAYS, expiryFrom, hasExpired, isValidRetention } from "../shared/expiry.ts";
 
-type Env = { DB: D1Database; ASSETS: Fetcher };
+type Env = { DB: D1Database; ASSETS: Fetcher; CREATE_LIMITER?: RateLimit };
 
 const ID_PATTERN = /^[A-Za-z0-9_-]{16,64}$/;
 const FORMAT = "handback-aes256gcm-v1";
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+const json = (body: unknown, status = 200, extraHeaders?: Record<string, string>) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json", ...extraHeaders },
+  });
 
 /**
  * WebMCP is disabled outright in a document whose agent cluster is not
@@ -30,6 +31,38 @@ function withAgentHeaders(response: Response): Response {
   const headers = new Headers(response.headers);
   headers.set("Origin-Agent-Cluster", "?1");
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+/**
+ * Guards handoff creation, not reads or contributions. A read costs nothing to
+ * repeat; a create grows D1 storage and burns the free-tier request budget
+ * forever, so it is the one endpoint scripted spam actually damages.
+ *
+ * Fails OPEN: if the binding is absent (local dev, tests, an account that
+ * predates it) or the call itself errors, creation proceeds. Rate limiting is
+ * a defense against abuse, not a correctness path — an infra hiccup here
+ * should never be the reason a real handoff fails to save.
+ *
+ * The configured 20/60s is a target, not a guarantee. Confirmed directly
+ * against production (2026-08-27): a burst was denied at request 13 in one
+ * run and request 18 in another, with a genuinely empty first burst right
+ * after deploying to a namespace with no traffic history. Cloudflare's own
+ * docs do not state a consistency model for this binding, and this is
+ * consistent with an approximate, eventually-consistent distributed counter
+ * rather than a single exact counter. That is still the right shape for this
+ * job: the goal is making scripted spam expensive, not billing-grade
+ * precision, and a hard local counter (Durable Objects) would be real
+ * complexity this product does not need.
+ */
+async function creationAllowed(env: Env, request: Request): Promise<boolean> {
+  if (!env.CREATE_LIMITER) return true;
+  const key = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  try {
+    const { success } = await env.CREATE_LIMITER.limit({ key });
+    return success;
+  } catch {
+    return true;
+  }
 }
 
 /** Same shape check as ENVELOPE_SCHEMA. Kept inline so the Worker pulls in no
@@ -85,6 +118,10 @@ export default {
     if (!url.pathname.startsWith("/api/")) return withAgentHeaders(await env.ASSETS.fetch(request));
 
     if (url.pathname === "/api/h" && request.method === "POST") {
+      if (!(await creationAllowed(env, request))) {
+        return json({ error: "rate_limited" }, 429, { "retry-after": "60" });
+      }
+
       const body = await request.json().catch(() => null) as { envelope?: unknown; retentionDays?: unknown } | null;
       if (!isEnvelope(body?.envelope)) return json({ error: "invalid_envelope" }, 400);
 

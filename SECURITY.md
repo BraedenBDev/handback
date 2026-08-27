@@ -46,6 +46,20 @@ would be destroyable by its recipient.
 If a link reaches someone it should not have, treat the contents as disclosed.
 Shorten the window on the next one rather than trying to recall this one.
 
+## Rate limiting
+
+Creating a handoff is rate-limited per IP (Cloudflare's Rate Limiting binding).
+Reads and contributions are not: a read costs nothing to repeat, and a
+contribution can only land on a handoff that already exists, so neither one
+grows storage or budget the way an unbounded stream of creates would.
+
+The limit is a target, not a guarantee — confirmed directly against
+production, enforcement is approximate rather than an exact per-window cutoff,
+consistent with a distributed counter rather than a single global one. The
+check also fails open: if the binding is unavailable or errors, creation
+proceeds rather than failing a real handoff over an infrastructure hiccup.
+This is deliberately a blunt tool against scripted spam, not a precise quota.
+
 ## Threat model in one line
 
 A link is a bearer capability. Whoever holds the whole link, fragment included,

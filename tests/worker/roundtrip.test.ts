@@ -27,7 +27,7 @@ describe("full handoff lifecycle", () => {
     });
 
     const created = await SELF.fetch(`${origin}/api/h`, {
-      method: "POST", headers: { "content-type": "application/json" },
+      method: "POST", headers: { "content-type": "application/json", "CF-Connecting-IP": crypto.randomUUID() },
       body: JSON.stringify({ envelope: await encryptDocument(key, v1) }),
     });
     expect(created.status).toBe(201);

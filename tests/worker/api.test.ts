@@ -4,8 +4,15 @@ import { describe, expect, it } from "vitest";
 const envelope = { format: "handback-aes256gcm-v1", iv: "AAAAAAAAAAAAAAAA", ciphertext: "ZmFrZQ" };
 const origin = "https://handback.link";
 
+// Each call gets its own synthetic client IP so these tests do not exhaust
+// each other's create-rate budget; tests/worker/rate-limit.test.ts is what
+// exercises the limiter itself with a held-fixed IP.
 const post = (body: unknown) =>
-  SELF.fetch(`${origin}/api/h`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  SELF.fetch(`${origin}/api/h`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "CF-Connecting-IP": crypto.randomUUID() },
+    body: JSON.stringify(body),
+  });
 const put = (id: string, body: unknown) =>
   SELF.fetch(`${origin}/api/h/${id}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 const get = (path: string) => SELF.fetch(`${origin}${path}`);

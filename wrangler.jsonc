@@ -24,6 +24,15 @@
       "database_id": "86797b24-bbf8-4f6f-850a-1d552ca3cab0"
     }
   ],
+  // Guards handoff creation against scripted spam: each creation grows D1
+  // storage and burns the free-tier request budget forever, unlike a read.
+  "ratelimits": [
+    {
+      "name": "CREATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 20, "period": 60 }
+    }
+  ],
   // Daily sweep for handoffs that expired without anyone revisiting them.
   "triggers": { "crons": ["17 3 * * *"] },
   "observability": { "enabled": true }

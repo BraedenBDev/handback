@@ -1,0 +1,31 @@
+// End-to-end config, used only by Playwright's local wrangler dev server.
+//
+// Identical to wrangler.jsonc except it has no `ratelimits` block. The e2e
+// suite runs dozens of specs against one wrangler dev instance in quick
+// succession, all from the same loopback address, and would trip the
+// production create-rate limit as a false positive rather than real abuse.
+// creationAllowed() in worker/index.ts already fails open when the binding is
+// absent, which is exactly what an environment with no traffic-shaping
+// concerns should do — so omitting the binding here needed no new code path.
+//
+// Keep this in sync with wrangler.jsonc for everything except `ratelimits`,
+// `routes`, `workers_dev` and `triggers` (routing and the cron have no
+// meaning for a throwaway local instance).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "handback-e2e",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "handback",
+      "database_id": "86797b24-bbf8-4f6f-850a-1d552ca3cab0"
+    }
+  ]
+}
