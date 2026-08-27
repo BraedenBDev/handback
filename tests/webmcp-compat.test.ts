@@ -333,3 +333,61 @@ describe("an API injected after mount is still picked up", () => {
     }
   });
 });
+
+describe("a long section can still be read, one page at a time", () => {
+  /**
+   * The regression a real ChatGPT session hit: `summary` may be 4,000
+   * characters, so under a 1,500 character budget it could never fit, was
+   * dropped every time, and the agent abandoned the tool and scraped the
+   * rendered page instead. A reader that silently cannot return a field is
+   * worse than no reader.
+   */
+  const longSummary = "S".repeat(4000);
+
+  it("returns an oversized single section instead of dropping it", () => {
+    const page = clampForAgent({ version: 1, summary: longSummary }) as any;
+    expect(page.summary).toBeTruthy();
+    expect(page.summary.length).toBeGreaterThan(500);
+    expect(page.droppedSections).toBeUndefined();
+  });
+
+  it("says exactly where to resume", () => {
+    const page = clampForAgent({ version: 1, summary: longSummary }) as any;
+    expect(page.complete).toBe(false);
+    expect(page.nextOffset).toBe(page.summary.length);
+    expect(page.totalLength).toBe(4000);
+    expect(page.note).toMatch(/offset:\d+/);
+  });
+
+  it("reassembles into the original when paged through", () => {
+    let offset = 0;
+    let assembled = "";
+    for (let guard = 0; guard < 20; guard++) {
+      const page = clampForAgent({ version: 1, summary: longSummary }, offset) as any;
+      assembled += page.summary;
+      if (page.complete !== false) break;
+      offset = page.nextOffset;
+    }
+    expect(assembled).toBe(longSummary);
+  });
+
+  it("marks the final page complete", () => {
+    const page = clampForAgent({ version: 1, summary: longSummary }, 3900) as any;
+    expect(page.complete).toBe(true);
+    expect(page.summary).toBe("S".repeat(100));
+  });
+
+  it("keeps every page inside the budget once wrapped", () => {
+    const wrapped = toToolResult(clampForAgent({ version: 1, summary: longSummary }));
+    expect(JSON.stringify(wrapped).length).toBeLessThanOrEqual(1500);
+  });
+
+  it("still names dropped sections when several were asked for at once", () => {
+    const many = clampForAgent({
+      version: 1, summary: longSummary, objective: "o".repeat(600), handoffNote: "n".repeat(2000),
+    }) as any;
+    expect(many.truncated).toBe(true);
+    expect(many.droppedSections.length).toBeGreaterThan(0);
+    expect(many.note).toMatch(/single section at a time/);
+  });
+});

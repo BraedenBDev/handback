@@ -6,7 +6,8 @@ import { applyContribution, describeContribution, StaleBaseError } from "./contr
 import { stampDocument, verifyDocument, type SealVerdict } from "./hash.ts";
 import { downloadFile, toMarkdown, toPortableJson } from "./export.ts";
 import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
-import { ErrorNote, Field, HistoryView, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
+import { readAutoApprove } from "./auto-approve.ts";
+import { ApprovalMode, ErrorNote, Field, HistoryView, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
 
 export function HandoffPage({ id }: { id: string }) {
   const [doc, setDoc] = useState<HandoffDocument | null>(null);
@@ -74,7 +75,7 @@ export function HandoffPage({ id }: { id: string }) {
         for (const section of sections) picked[section] = current.state[section] ?? null;
         return picked;
       },
-      stageContribution: (contribution: Contribution) => {
+      stageContribution: async (contribution: Contribution) => {
         const current = latest.current.doc;
         if (!current) {
           return {
@@ -88,6 +89,12 @@ export function HandoffPage({ id }: { id: string }) {
         }
         setError(null);
         setStaged(contribution);
+        // Read the preference at call time so flipping the switch takes effect
+        // on the very next tool call.
+        if (readAutoApprove()) {
+          const version = await commitContribution(current, contribution);
+          if (version) return { status: "committed" as const, version };
+        }
         return {
           status: "staged" as const,
           baseVersion: contribution.baseVersion,
@@ -107,17 +114,23 @@ export function HandoffPage({ id }: { id: string }) {
   }, []);
 
   async function approveContribution() {
+    if (doc && staged) await commitContribution(doc, staged);
+  }
+
+  /** Applies, re-encrypts and saves. Shared by the button and by auto-approval. */
+  async function commitContribution(base: HandoffDocument, contribution: Contribution): Promise<number | null> {
     const key = keyRef.current;
-    if (!doc || !staged || !key) return;
+    if (!key) return null;
     setBusy(true);
     setError(null);
     try {
-      const next = await stampDocument(applyContribution(doc, staged));
+      const next = await stampDocument(applyContribution(base, contribution));
       // Same key, new IV. The link already shared keeps working.
-      await updateHandoff(id, await encryptDocument(key, next), doc.version);
+      await updateHandoff(id, await encryptDocument(key, next), base.version);
       setDoc(next);
       setSeal(await verifyDocument(next));
       setStaged(null);
+      return next.version;
     } catch (cause) {
       if (cause instanceof VersionConflictError) {
         setError(
@@ -128,6 +141,7 @@ export function HandoffPage({ id }: { id: string }) {
       } else {
         setError(cause instanceof Error ? cause.message : "Could not save the contribution.");
       }
+      return null;
     } finally {
       setBusy(false);
     }
@@ -161,6 +175,7 @@ export function HandoffPage({ id }: { id: string }) {
       </Masthead>
 
       <ToolStatus available={webMcp} />
+      <ApprovalMode />
       <ErrorNote error={error} />
 
       {seal === "mismatch" ? (

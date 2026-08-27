@@ -142,3 +142,69 @@ test.describe("responsive", () => {
     });
   }
 });
+
+test.describe("approval mode", () => {
+  test("requires a click by default", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText("Approval required.")).toBeVisible();
+    await page.getByLabel("Objective").fill("Gated by default");
+    await page.getByLabel("Where the work stands").fill("Nobody opted into anything.");
+    await page.getByRole("button", { name: "Stage handoff" }).click();
+    // Staged, not created: no link until someone clicks.
+    await expect(page.getByRole("button", { name: "Approve and create" })).toBeVisible();
+    await expect(page.locator("input.link")).toHaveCount(0);
+  });
+
+  test("stops asking on this device once switched, and remembers across reloads", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Stop asking on this device" }).click();
+    await expect(page.getByText("Auto-approving.")).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByText("Auto-approving.")).toBeVisible();
+  });
+
+  test("an agent call creates without a click once auto-approval is on", async ({ page }) => {
+    await page.addInitScript(() => {
+      const registered: any[] = [];
+      Object.defineProperty(document, "modelContext", {
+        configurable: true,
+        value: {
+          registerTool: (t: any) => { registered.push(t); return Promise.resolve(); },
+          getTools: () => Promise.resolve(registered),
+          executeTool: async (tool: any, input: string) =>
+            JSON.stringify(await registered.find((t) => t.name === tool.name).execute(JSON.parse(input))),
+        },
+      });
+    });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Stop asking on this device" }).click();
+
+    const result = await page.evaluate(async () => {
+      const mc = (document as any).modelContext;
+      const tools = await mc.getTools();
+      const raw = JSON.parse(await mc.executeTool(tools.find((t: any) => t.name === "stage_handoff"), JSON.stringify({
+        objective: "Created with no click",
+        summary: "Auto-approval was switched on first.",
+      })));
+      return raw.structuredContent ?? JSON.parse(raw.content[0].text);
+    });
+
+    expect(result.status).toBe("created");
+    expect(result.url).toContain("#k=");
+    // The page shows the link too, without anyone having pressed anything.
+    await expect(page.locator("input.link")).toBeVisible();
+  });
+
+  test("switching back restores the gate", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Stop asking on this device" }).click();
+    await page.getByRole("button", { name: "Require approval" }).click();
+    await expect(page.getByText("Approval required.")).toBeVisible();
+
+    await page.getByLabel("Objective").fill("Gated again");
+    await page.getByLabel("Where the work stands").fill("Back to staging.");
+    await page.getByRole("button", { name: "Stage handoff" }).click();
+    await expect(page.getByRole("button", { name: "Approve and create" })).toBeVisible();
+  });
+});

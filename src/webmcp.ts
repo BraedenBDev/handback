@@ -30,9 +30,14 @@ import {
  */
 export type ToolRefusal = { status: "refused"; reason: string; message: string };
 
+/** Committed without a click, because the human turned auto-approval on. */
+export type AutoApproved =
+  | { status: "created"; url: string; version: number }
+  | { status: "committed"; version: number };
+
 /** What the page lets the tools do. Implemented by React, injected here. */
 export type WebMcpBridge = {
-  stageHandoff(state: HandoffState): void | ToolRefusal;
+  stageHandoff(state: HandoffState): void | ToolRefusal | Promise<void | ToolRefusal | AutoApproved>;
   getReceipt(): { status: "pending" | "created"; url?: string; version?: number };
   readHandoff(sections: ReadSection[]): Record<string, unknown> | { error: string };
   stageContribution(
@@ -40,7 +45,13 @@ export type WebMcpBridge = {
   ):
     | { status: "staged"; baseVersion: number; operationCount: number }
     | { status: "refused"; reason: "stale_base"; currentVersion: number }
-    | ToolRefusal;
+    | ToolRefusal
+    | Promise<
+        | { status: "staged"; baseVersion: number; operationCount: number }
+        | { status: "refused"; reason: "stale_base"; currentVersion: number }
+        | ToolRefusal
+        | AutoApproved
+      >;
 };
 
 type ModelContext = {
@@ -88,36 +99,78 @@ function resolveModelContext(): ModelContext | null {
 
 /**
  * Chrome documents a ~1.5K character guideline per tool output, and a handoff
- * can hold far more than that: the schema alone permits 100 sources and 50
- * decisions, so a full read is ~366,000 characters worst case. Returning that
- * floods the agent's context and may simply be truncated somewhere we cannot
- * see, which would silently hand the agent a half-read handoff it believes is
- * complete.
+ * can hold far more: the schema permits 100 sources and 50 decisions, so a full
+ * read is ~366,000 characters worst case.
  *
- * So it is clipped here, deliberately and visibly: the agent is told what was
- * dropped and how to ask for the rest.
+ * The first version of this simply dropped any section that would not fit. A
+ * real ChatGPT session then hit the case that breaks: `summary` alone may be
+ * 4,000 characters, so it could NEVER fit, was dropped every time, and the
+ * agent gave up on the tool and scraped the rendered page instead. A reader
+ * that silently cannot return a field is worse than no reader.
+ *
+ * So a single oversized section is now RETURNED, cut to fit, with the exact
+ * offset to resume from. Asking for one section at a time is the paging
+ * mechanism, and the note says so.
  */
 const AGENT_OUTPUT_BUDGET = 1500;
+// Room for the paging metadata AND the content-block wrapper that toToolResult
+// adds afterwards: wrapping re-serialises the payload into a JSON string, so
+// every quote is escaped and the real output is larger than what is measured
+// here. Sized so the FINAL wrapped result stays inside the budget.
+const RESERVED_FOR_METADATA = 380;
 
-export function clampForAgent(result: Record<string, unknown> | { error: string }): unknown {
+export function clampForAgent(
+  result: Record<string, unknown> | { error: string },
+  offset = 0,
+): unknown {
   if ("error" in result) return result;
-  const serialised = JSON.stringify(result);
-  if (serialised.length <= AGENT_OUTPUT_BUDGET) return result;
 
-  const kept: Record<string, unknown> = { version: result.version };
+  const { version, ...sections } = result as Record<string, unknown>;
+  const names = Object.keys(sections);
+
+  // One section asked for: page through it rather than dropping it.
+  if (names.length === 1) {
+    const [name] = names as [string];
+    const value = sections[name];
+    if (typeof value === "string") {
+      const room = AGENT_OUTPUT_BUDGET - RESERVED_FOR_METADATA;
+      const remaining = value.slice(offset);
+      if (remaining.length <= room) {
+        return offset > 0 ? { version, [name]: remaining, offset, complete: true } : { version, [name]: remaining };
+      }
+      const piece = remaining.slice(0, room);
+      return {
+        version,
+        [name]: piece,
+        offset,
+        nextOffset: offset + piece.length,
+        totalLength: value.length,
+        complete: false,
+        note: `This section is ${value.length} characters. Call read_handoff again with sections:["${name}"] and offset:${offset + piece.length} for the rest.`,
+      };
+    }
+  }
+
+  const whole = JSON.stringify(result);
+  if (whole.length <= AGENT_OUTPUT_BUDGET) return result;
+
+  // Several sections asked for: fit what will fit, and name what would not.
+  const kept: Record<string, unknown> = { version };
   const dropped: string[] = [];
-  for (const [key, value] of Object.entries(result)) {
-    if (key === "version") continue;
+  for (const [key, value] of Object.entries(sections)) {
     const candidate = { ...kept, [key]: value };
-    if (JSON.stringify(candidate).length <= AGENT_OUTPUT_BUDGET) Object.assign(kept, { [key]: value });
-    else dropped.push(key);
+    if (JSON.stringify(candidate).length <= AGENT_OUTPUT_BUDGET - RESERVED_FOR_METADATA) {
+      Object.assign(kept, { [key]: value });
+    } else {
+      dropped.push(key);
+    }
   }
 
   return {
     ...kept,
     truncated: true,
     droppedSections: dropped,
-    note: `This handoff is larger than one tool response can carry. ${dropped.length} section(s) were left out. Call read_handoff again asking only for the ones you need.`,
+    note: `This handoff is larger than one tool response can carry. Call read_handoff again for a single section at a time: ${dropped.map((d) => `sections:["${d}"]`).join(", ")}.`,
   };
 }
 
@@ -203,8 +256,16 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
     inputSchema: HANDOFF_STATE_SCHEMA,
     annotations: { readOnlyHint: false, untrustedContentHint: true },
     execute: async (state: HandoffState) => {
-      const refusal = bridge.stageHandoff(state);
-      if (refusal) return toToolResult(refusal);
+      const outcome = await bridge.stageHandoff(state);
+      if (outcome && "status" in outcome && outcome.status === "created") {
+        return toToolResult({
+          status: "created",
+          url: outcome.url,
+          version: outcome.version,
+          message: `Created. This device has auto-approval on, so no click was needed. The link is ${outcome.url}`,
+        });
+      }
+      if (outcome) return toToolResult(outcome);
       return toToolResult({
         status: "staged_awaiting_human_approval",
         message: "Draft is on screen. The human reviews and clicks Approve and create.",
@@ -235,14 +296,20 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
           minItems: 1,
           maxItems: READ_SECTIONS.length,
           items: { type: "string", enum: READ_SECTIONS },
-          description: "Which sections to return.",
+          description: "Which sections to return. Ask for one to page through a long one.",
+        },
+        offset: {
+          type: "integer",
+          minimum: 0,
+          description: "Resume a single long section from this character offset.",
         },
       },
       required: ["sections"],
       additionalProperties: false,
     },
     annotations: { readOnlyHint: true, untrustedContentHint: true },
-    execute: async ({ sections }: { sections: ReadSection[] }) => toToolResult(clampForAgent(bridge.readHandoff(sections))),
+    execute: async ({ sections, offset }: { sections: ReadSection[]; offset?: number }) =>
+      toToolResult(clampForAgent(bridge.readHandoff(sections), offset ?? 0)),
   });
 
   await register({
@@ -253,7 +320,14 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
     inputSchema: CONTRIBUTION_SCHEMA,
     annotations: { readOnlyHint: false, untrustedContentHint: true },
     execute: async (contribution: Contribution) => {
-      const staged = bridge.stageContribution(contribution);
+      const staged = await bridge.stageContribution(contribution);
+      if (staged.status === "committed") {
+        return toToolResult({
+          status: "committed",
+          version: staged.version,
+          message: `Committed as version ${staged.version}. This device has auto-approval on, so no click was needed.`,
+        });
+      }
       // A refusal is RETURNED, not thrown. WebMCP collapses a thrown error into
       // a generic "the script function threw an error", which tells the calling
       // agent nothing it can act on. Handing back the current version lets it
@@ -268,6 +342,8 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
           message: `This handoff is at version ${staged.currentVersion}. Call read_handoff again and re-propose against that version.`,
         });
       }
+      // Anything that is not a staged proposal is passed through as-is.
+      if (staged.status !== "staged") return toToolResult(staged);
       return toToolResult({
         status: "staged_awaiting_human_approval",
         baseVersion: staged.baseVersion,

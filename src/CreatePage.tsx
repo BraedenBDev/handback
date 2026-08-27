@@ -5,7 +5,8 @@ import { createHandoff } from "./api.ts";
 import { stampDocument } from "./hash.ts";
 import { ImportError, readPortableFile } from "./import.ts";
 import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
-import { ErrorNote, Field, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
+import { readAutoApprove } from "./auto-approve.ts";
+import { ApprovalMode, ErrorNote, Field, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
 
 export function CreatePage() {
   const [draft, setDraft] = useState<HandoffState | null>(null);
@@ -23,11 +24,16 @@ export function CreatePage() {
 
   useEffect(() => {
     const bridge: WebMcpBridge = {
-      stageHandoff: (state) => {
+      stageHandoff: async (state) => {
         setError(null);
         setNotice(null);
         setCreated(null);
         setDraft(state);
+        // Read the preference at call time, not at registration time, so
+        // flipping the switch takes effect on the very next tool call.
+        if (!readAutoApprove()) return;
+        const receipt = await createFrom(state);
+        return receipt ? { status: "created" as const, url: receipt.url, version: receipt.version } : undefined;
       },
       getReceipt: () =>
         latest.current.created
@@ -52,13 +58,17 @@ export function CreatePage() {
   }, []);
 
   async function approveAndCreate() {
-    if (!draft) return;
+    if (draft) await createFrom(draft);
+  }
+
+  /** Encrypts and creates. Shared by the button and by auto-approval. */
+  async function createFrom(state: HandoffState): Promise<{ url: string; version: number } | null> {
     setBusy(true);
     setError(null);
     try {
       const now = new Date().toISOString();
       const doc: HandoffDocument = await stampDocument({
-        state: draft,
+        state,
         version: 1,
         createdAt: now,
         updatedAt: now,
@@ -71,9 +81,12 @@ export function CreatePage() {
       const key = await generateKey();
       const envelope = await encryptDocument(key, doc);
       const { id, version } = await createHandoff(envelope);
-      setCreated({ url: buildHandoffUrl(location.origin, id, await exportKey(key)), version, hash: doc.contentHash! });
+      const receipt = { url: buildHandoffUrl(location.origin, id, await exportKey(key)), version };
+      setCreated({ ...receipt, hash: doc.contentHash! });
+      return receipt;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not create the handoff.");
+      return null;
     } finally {
       setBusy(false);
     }
@@ -144,6 +157,7 @@ export function CreatePage() {
     <main>
       <Masthead />
       <ToolStatus available={webMcp} />
+      <ApprovalMode />
       <ErrorNote error={error} />
       {notice ? <p className="caution">{notice}</p> : null}
 

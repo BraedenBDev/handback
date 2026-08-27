@@ -108,16 +108,32 @@ test("every interactive control is reachable and visibly focused by keyboard", a
   expect(seen.size).toBeGreaterThan(1);
 });
 
-test("interactive targets meet the 44px minimum", async ({ page }) => {
+test("interactive targets meet their size floor", async ({ page }) => {
   await page.goto("/");
-  const small = await page.evaluate(() =>
-    [...document.querySelectorAll("button, select, input[type=text], textarea")]
-      .map((el) => ({ text: (el.textContent || (el as HTMLElement).getAttribute("aria-label") || el.tagName).slice(0, 30), h: el.getBoundingClientRect().height }))
-      // The theme toggle is a deliberate exception: a secondary chrome control
-      // in the masthead, kept small so it does not compete with the wordmark.
-      .filter((x) => x.h > 0 && x.h < 44 && !/light|dark/i.test(x.text)),
-  );
-  expect(small).toEqual([]);
+
+  // Two tiers, because two different standards apply and conflating them is how
+  // you end up either failing a real check or fudging the threshold.
+  //
+  // WCAG 2.2 AA (SC 2.5.8, Target Size Minimum) requires 24x24 CSS px. That is
+  // the accessibility floor and it is non-negotiable for every control.
+  //
+  // 44px is the mobile-HIG comfort target, not a WCAG AA requirement. It is
+  // applied to the actions inside the document, where mis-taps cost something.
+  // The masthead and status-strip controls (theme, source, approval mode) are
+  // secondary chrome, deliberately smaller so they do not compete with the
+  // wordmark, and they clear the WCAG floor with room to spare.
+  const measured = await page.evaluate(() => {
+    const CHROME = ".theme-toggle, .source-link, .mode-toggle";
+    return [...document.querySelectorAll("button, a[href], select, input[type=text], textarea")].map((el) => ({
+      label: (el.textContent || el.getAttribute("aria-label") || el.tagName).trim().slice(0, 40),
+      height: Math.round(el.getBoundingClientRect().height),
+      chrome: el.matches(CHROME),
+    })).filter((x) => x.height > 0);
+  });
+
+  expect(measured.length).toBeGreaterThan(3);
+  expect(measured.filter((x) => x.height < 24)).toEqual([]);
+  expect(measured.filter((x) => !x.chrome && x.height < 44)).toEqual([]);
 });
 
 test("the document has one h1 and a sensible heading order", async ({ page }) => {

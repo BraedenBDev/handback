@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { HandoffDocument, HandoffState } from "../shared/schema.ts";
 import { sealOf, type SealVerdict } from "./hash.ts";
+import { readAutoApprove, writeAutoApprove } from "./auto-approve.ts";
 
 /**
  * Presentational pieces.
@@ -60,6 +61,17 @@ export function Seal({
   );
 }
 
+export const REPOSITORY_URL = "https://github.com/BraedenBDev/handback";
+
+/** The GitHub mark, inline. No emoji: they render inconsistently and read as decoration. */
+function SourceMark() {
+  return (
+    <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false" fill="currentColor">
+      <path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38l-.01-1.49c-2.01.36-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48l-.01 2.19c0 .21.15.46.55.38A8 8 0 0 0 8 0Z" />
+    </svg>
+  );
+}
+
 export function Masthead({ children }: { children?: React.ReactNode }) {
   return (
     <header className="masthead">
@@ -69,6 +81,10 @@ export function Masthead({ children }: { children?: React.ReactNode }) {
       </h1>
       <div className="masthead-meta">
         {children}
+        <a className="source-link" href={REPOSITORY_URL} target="_blank" rel="noopener noreferrer">
+          <SourceMark />
+          Source
+        </a>
         <ThemeToggle />
       </div>
     </header>
@@ -234,6 +250,36 @@ export function ToolStatus({ available }: { available: boolean }) {
           </span>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * The consent mode, always visible so nobody is unsure which one they are in.
+ * Off by default; the switch is the human's single deliberate act of consent,
+ * after which this device stops asking per operation.
+ */
+export function ApprovalMode({ onChange }: { onChange?: (on: boolean) => void }) {
+  const [on, setOn] = useState(readAutoApprove);
+
+  function toggle() {
+    const next = !on;
+    setOn(next);
+    writeAutoApprove(next);
+    onChange?.(next);
+  }
+
+  return (
+    <div className={`strip ${on ? "strip-auto" : "strip-gate"}`}>
+      <b>{on ? "Auto-approving." : "Approval required."}</b>
+      <span>
+        {on
+          ? "Your agent creates and commits on this device without asking. Every version is still kept, so anything it writes can be read back."
+          : "Your agent stages; you click to commit."}
+      </span>
+      <button type="button" className="mode-toggle" onClick={toggle} aria-pressed={on}>
+        {on ? "Require approval" : "Stop asking on this device"}
+      </button>
     </div>
   );
 }
