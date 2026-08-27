@@ -47,6 +47,19 @@ npm test           # 21 tests
 
 WebMCP needs Chrome 149+ with `chrome://flags/#enable-webmcp-testing` enabled, or ChatGPT's in-app browser. Without it the page still works — every flow has a visible manual form, including contributions — it just cannot be driven by an agent.
 
+**Verified against Chrome 149 on 2026-08-27.** All four tools register, and `stage_handoff` was driven end to end through the real API. Two details the current draft spec does not spell out, both found the hard way:
+
+- `executeTool` takes the **`RegisteredTool` object** from `getTools()`, not a tool name. Passing a name throws `The provided value is not of type 'RegisteredTool'`.
+- The input argument must be a **JSON string**, not an object. Passing an object throws `Failed to parse input arguments`. The result comes back as a JSON string too.
+
+```js
+const tools = await document.modelContext.getTools();
+const tool = tools.find((t) => t.name === "stage_handoff");
+const result = JSON.parse(await document.modelContext.executeTool(tool, JSON.stringify(payload)));
+```
+
+`ModelContext` exposes `registerTool`, `getTools`, `executeTool` and `ontoolchange`. Treat all of this as unstable — WebMCP is a Draft Community Group Report, not a standard.
+
 ## Security posture, stated honestly
 
 - **AES-256-GCM in the browser.** The key is generated at creation, lives in the URL fragment, and is reused for every later version. The fragment is never sent in an HTTP request.
@@ -72,7 +85,8 @@ docs/                Product brief, spec, prior art, naming, WebMCP research
 ## Still to do
 
 - Deploy to a public URL, needed for the hackathon submission.
-- Playwright smoke test driving a real Chrome with the WebMCP flag on.
+- Playwright smoke test driving a real Chrome with the WebMCP flag on (done manually 08-27, not yet automated).
+- An MCP adapter for agents that are not in a browser. Today a CLI agent has to be handed the fragment key and write its own decrypt, which is exactly the "recipient must understand cryptography" failure `docs/PRIOR-ART-AND-NOGO.md` rules out.
 - Import a portable file back into a fresh instance (export works; import does not yet).
 - Revocation and expiry.
 
