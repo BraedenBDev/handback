@@ -7,3 +7,4 @@ dist/
 e2e.sqlite
 test-results/
 playwright-report/
+.wrangler/

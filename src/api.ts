@@ -37,7 +37,7 @@ export async function updateHandoff(
     body: JSON.stringify({ envelope, expectedVersion }),
   });
   if (response.status === 409) {
-    const body = await response.json().catch(() => ({}));
+    const body = (await response.json().catch(() => ({}))) as { currentVersion?: number };
     throw new VersionConflictError(body.currentVersion ?? -1);
   }
   if (!response.ok) throw new Error(`Could not save contribution (${response.status})`);

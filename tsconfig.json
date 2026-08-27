@@ -12,7 +12,7 @@
     "noUncheckedIndexedAccess": true,
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals", "@cloudflare/vitest-pool-workers", "@cloudflare/workers-types"]
   },
-  "include": ["src", "server", "shared", "tests", "vite.config.ts"]
+  "include": ["src", "worker", "shared", "tests", "e2e", "scripts", "vite.config.ts", "playwright.config.ts"]
 }

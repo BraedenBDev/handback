@@ -58,9 +58,11 @@ export function HandoffPage({ id }: { id: string }) {
 
   useEffect(() => {
     const bridge: WebMcpBridge = {
-      stageHandoff: () => {
-        throw new Error("A handoff is already open here. Use stage_contribution to propose changes to it.");
-      },
+      stageHandoff: () => ({
+        status: "refused" as const,
+        reason: "wrong_page",
+        message: "A handoff is already open on this page. Use stage_contribution to propose changes to it instead.",
+      }),
       getReceipt: () => {
         const current = latest.current.doc;
         return current ? { status: "created", url: location.href, version: current.version } : { status: "pending" };
@@ -74,7 +76,13 @@ export function HandoffPage({ id }: { id: string }) {
       },
       stageContribution: (contribution: Contribution) => {
         const current = latest.current.doc;
-        if (!current) throw new Error("This handoff has not finished decrypting yet.");
+        if (!current) {
+          return {
+            status: "refused" as const,
+            reason: "not_ready",
+            message: "This handoff has not finished decrypting yet. Try again in a moment.",
+          };
+        }
         if (contribution.baseVersion !== current.version) {
           return { status: "refused" as const, reason: "stale_base" as const, currentVersion: current.version };
         }

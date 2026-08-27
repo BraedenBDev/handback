@@ -34,9 +34,11 @@ export function CreatePage() {
           ? { status: "created", url: latest.current.created.url, version: latest.current.created.version }
           : { status: "pending" },
       readHandoff: () => ({ error: "No handoff is open on this page. Open a handoff link to read one." }),
-      stageContribution: () => {
-        throw new Error("No handoff is open on this page. Open a handoff link to contribute to one.");
-      },
+      stageContribution: () => ({
+        status: "refused" as const,
+        reason: "wrong_page",
+        message: "This page creates handoffs; it has none open to contribute to. Open a handoff link first, then call stage_contribution there.",
+      }),
     };
     let controller: AbortController | null = null;
     registerHandbackTools(bridge).then((result) => (controller = result));

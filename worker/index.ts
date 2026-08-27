@@ -17,6 +17,20 @@ const FORMAT = "handback-aes256gcm-v1";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
+/**
+ * WebMCP is disabled outright in a document whose agent cluster is not
+ * origin-keyed — Chrome: "If a document has document.domain enabled (for
+ * example, by using the Origin-Agent-Cluster: ?0 HTTP header), WebMCP APIs are
+ * disabled", and registerTool rejects with SecurityError per the spec. Asking
+ * for origin-keying explicitly means a future proxy or platform default cannot
+ * quietly switch the tools off.
+ */
+function withAgentHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set("Origin-Agent-Cluster", "?1");
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
 /** Same shape check as ENVELOPE_SCHEMA. Kept inline so the Worker pulls in no
  *  validator at the edge; the bounds are the ones the schema declares. */
 function isEnvelope(value: unknown): value is Envelope {
@@ -56,7 +70,7 @@ export default {
       return Response.redirect(url.toString(), 301);
     }
 
-    if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
+    if (!url.pathname.startsWith("/api/")) return withAgentHeaders(await env.ASSETS.fetch(request));
 
     if (url.pathname === "/api/h" && request.method === "POST") {
       const body = await request.json().catch(() => null) as { envelope?: unknown } | null;
