@@ -49,10 +49,26 @@ export default {
 
       const id = newHandoffId();
       const now = new Date().toISOString();
-      await env.DB.prepare(
-        "INSERT INTO handoffs (id, version, envelope, createdAt, updatedAt) VALUES (?, 1, ?, ?, ?)",
-      ).bind(id, JSON.stringify(body!.envelope), now, now).run();
+      const envelope = body!.envelope as Envelope;
+      await env.DB.batch([
+        env.DB.prepare("INSERT INTO handoffs (id, currentVersion, createdAt, updatedAt) VALUES (?, 1, ?, ?)")
+          .bind(id, now, now),
+        env.DB.prepare(
+          "INSERT INTO envelopes (handoffId, version, format, iv, ciphertext, createdAt) VALUES (?, 1, ?, ?, ?, ?)",
+        ).bind(id, envelope.format, envelope.iv, envelope.ciphertext, now),
+      ]);
       return json({ id, version: 1 }, 201);
+    }
+
+    const versionsMatch = /^\/api\/h\/([^/]+)\/versions$/.exec(url.pathname);
+    if (versionsMatch && request.method === "GET") {
+      const id = decodeURIComponent(versionsMatch[1]!);
+      if (!ID_PATTERN.test(id)) return json({ error: "invalid_id" }, 400);
+      const rows = await env.DB.prepare(
+        "SELECT version, createdAt FROM envelopes WHERE handoffId = ? ORDER BY version",
+      ).bind(id).all<{ version: number; createdAt: string }>();
+      if (!rows.results.length) return json({ error: "not_found" }, 404);
+      return json({ id, versions: rows.results });
     }
 
     const match = /^\/api\/h\/([^/]+)$/.exec(url.pathname);
@@ -61,10 +77,24 @@ export default {
       if (!ID_PATTERN.test(id)) return json({ error: "invalid_id" }, 400);
 
       if (request.method === "GET") {
-        const row = await env.DB.prepare("SELECT id, version, envelope FROM handoffs WHERE id = ?")
-          .bind(id).first<{ id: string; version: number; envelope: string }>();
-        if (!row) return json({ error: "not_found" }, 404);
-        return json({ id: row.id, version: row.version, envelope: JSON.parse(row.envelope) });
+        const handoff = await env.DB.prepare("SELECT id, currentVersion FROM handoffs WHERE id = ?")
+          .bind(id).first<{ id: string; currentVersion: number }>();
+        if (!handoff) return json({ error: "not_found" }, 404);
+
+        // ?version=N reads an earlier envelope. Nothing is ever deleted, so an
+        // approval that turns out to be wrong can still be recovered from.
+        const raw = url.searchParams.get("version");
+        const requested = raw === null ? handoff.currentVersion : Number(raw);
+        if (!Number.isInteger(requested) || requested < 1) return json({ error: "invalid_version" }, 400);
+
+        const row = await env.DB.prepare(
+          "SELECT format, iv, ciphertext FROM envelopes WHERE handoffId = ? AND version = ?",
+        ).bind(id, requested).first<{ format: string; iv: string; ciphertext: string }>();
+        if (!row) return json({ error: "version_not_found", currentVersion: handoff.currentVersion }, 404);
+        return json({
+          id, version: requested, currentVersion: handoff.currentVersion,
+          envelope: { format: row.format, iv: row.iv, ciphertext: row.ciphertext },
+        });
       }
 
       if (request.method === "PUT") {
@@ -77,19 +107,32 @@ export default {
           return json({ error: "expected_version_required" }, 400);
         }
 
-        const row = await env.DB.prepare("SELECT version FROM handoffs WHERE id = ?")
-          .bind(id).first<{ version: number }>();
-        if (!row) return json({ error: "not_found" }, 404);
-        if (row.version !== expectedVersion) {
-          return json({ error: "version_conflict", currentVersion: row.version, expectedVersion }, 409);
+        const handoff = await env.DB.prepare("SELECT currentVersion FROM handoffs WHERE id = ?")
+          .bind(id).first<{ currentVersion: number }>();
+        if (!handoff) return json({ error: "not_found" }, 404);
+        if (handoff.currentVersion !== expectedVersion) {
+          return json({ error: "version_conflict", currentVersion: handoff.currentVersion, expectedVersion }, 409);
         }
 
-        const nextVersion = row.version + 1;
-        const result = await env.DB.prepare(
-          "UPDATE handoffs SET version = ?, envelope = ?, updatedAt = ? WHERE id = ? AND version = ?",
-        ).bind(nextVersion, JSON.stringify(body!.envelope), new Date().toISOString(), id, expectedVersion).run();
+        const nextVersion = handoff.currentVersion + 1;
+        const now = new Date().toISOString();
+        const envelope = body!.envelope as Envelope;
 
-        if (!result.meta.changes) return json({ error: "version_conflict" }, 409);
+        // Insert the envelope FIRST. The (handoffId, version) primary key is the
+        // real concurrency guard: two writers racing for the same next version
+        // cannot both land, whichever order their SELECTs happened to run in.
+        try {
+          await env.DB.prepare(
+            "INSERT INTO envelopes (handoffId, version, format, iv, ciphertext, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
+          ).bind(id, nextVersion, envelope.format, envelope.iv, envelope.ciphertext, now).run();
+        } catch {
+          return json({ error: "version_conflict", currentVersion: nextVersion }, 409);
+        }
+
+        await env.DB.prepare(
+          "UPDATE handoffs SET currentVersion = ?, updatedAt = ? WHERE id = ? AND currentVersion = ?",
+        ).bind(nextVersion, now, id, expectedVersion).run();
+
         return json({ id, version: nextVersion });
       }
     }

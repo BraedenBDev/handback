@@ -1,31 +1,46 @@
 /**
- * Ciphertext store. Uses node:sqlite (built into Node 22+) so there is no
- * native dependency to compile.
+ * Ciphertext store, append-only.
  *
- * The schema is deliberately this narrow. There is no title column, no summary
- * column, no owner column and no search index, because any of those would mean
- * the server holds plaintext derived from the handoff. If you are tempted to
- * add one for convenience, that is the moment the product promise breaks.
+ * Every version's envelope is kept rather than overwritten. Handback's whole
+ * promise is that work survives, and a store that overwrites gives you version
+ * *numbers* without version *history* — a bad write, or a contribution approved
+ * against a corrupted state, would be unrecoverable. (Borrowed from the parallel
+ * Hermes implementation, which got this right where the first version here did not.)
+ *
+ * The schema stays this narrow deliberately. No title column, no summary column,
+ * no search index — any of those would mean the server holds plaintext derived
+ * from the handoff. If you are tempted to add one for convenience, that is the
+ * moment the product promise breaks.
  */
 import { DatabaseSync } from "node:sqlite";
 
-export type StoredHandoff = {
-  id: string;
+export type StoredEnvelope = {
+  handoffId: string;
   version: number;
-  envelope: string;
+  format: string;
+  iv: string;
+  ciphertext: string;
   createdAt: string;
-  updatedAt: string;
 };
 
 export function openDatabase(path = "handback.sqlite"): DatabaseSync {
   const db = new DatabaseSync(path);
   db.exec(`
     CREATE TABLE IF NOT EXISTS handoffs (
-      id         TEXT PRIMARY KEY,
+      id             TEXT PRIMARY KEY,
+      currentVersion INTEGER NOT NULL,
+      createdAt      TEXT NOT NULL,
+      updatedAt      TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS envelopes (
+      handoffId  TEXT NOT NULL,
       version    INTEGER NOT NULL,
-      envelope   TEXT NOT NULL,
+      format     TEXT NOT NULL,
+      iv         TEXT NOT NULL,
+      ciphertext TEXT NOT NULL,
       createdAt  TEXT NOT NULL,
-      updatedAt  TEXT NOT NULL
+      PRIMARY KEY (handoffId, version),
+      FOREIGN KEY (handoffId) REFERENCES handoffs(id)
     );
   `);
   return db;
