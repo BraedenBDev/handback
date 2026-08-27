@@ -1,0 +1,7 @@
+# Handoffs live at /h/<id> behind an unguessable id, and their decryption key
+# never leaves the URL fragment. A crawler cannot reach one it was not handed.
+# This is belt and braces: if a link is ever pasted somewhere public, it still
+# does not become a search result.
+User-agent: *
+Disallow: /h/
+Allow: /

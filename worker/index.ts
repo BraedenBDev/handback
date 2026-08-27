@@ -60,12 +60,12 @@ export default {
     // live origins would quietly produce two incompatible sets of links.
     // The fragment key is never sent to the server, and browsers carry it
     // across a redirect themselves, so #k=... survives this hop untouched.
+    // www is handled by a zone-level Single Redirect, which runs ahead of
+    // Workers and absorbs those requests without invoking this script (verified
+    // 2026-08-27: 30 requests to www produced 0 invocations). This branch still
+    // catches the workers.dev subdomain, whose /api/* traffic does reach here.
     const CANONICAL = "handback.link";
     if (url.hostname !== CANONICAL && (url.hostname.startsWith("www.") || url.hostname.endsWith(".workers.dev"))) {
-      // workers.dev is kept alive and redirected rather than switched off:
-      // links minted there are real links, and a product whose promise is that
-      // work survives should not break its own URLs to tidy up a hostname.
-      // Path and query carry over, and the browser carries the fragment.
       url.hostname = CANONICAL;
       return Response.redirect(url.toString(), 301);
     }

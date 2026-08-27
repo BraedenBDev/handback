@@ -2,28 +2,55 @@
 
 **Hand off the work. Get it back intact.**
 
-A good session with an agent produces something worth keeping: the objective, the
-decisions and the reasoning behind them, the constraints, the questions still
-open. All of it stays trapped in one provider's chat history. Handback turns it
-into a private link you own. Someone else's agent can read that link, propose
-additions, and hand it back.
+You spend an hour with an agent and it builds something worth keeping. Now try
+to move it somewhere.
+
+The canvas it lives in belongs to whoever made the assistant. ChatGPT cannot open
+a Claude artifact. Claude cannot open a Gemini one. Every vendor's workspace is a
+room with one door, and the key only turns from the inside.
+
+That leaves two bad options. Paste the whole transcript somewhere and the next
+agent has to re-read a conversation to work out what was already decided. Or
+publish it to a gist, a shared doc, a pastebin, which works and also puts your
+half-finished thinking on the open web for a crawler to index.
+
+What you wanted was a USB stick.
+
+You hand someone a USB stick and it stops mattering whose laptop they own.
+Nothing got published. Nobody finds it unless you gave it to them. When it comes
+back, everything that happened to it comes back too.
+
+Handback is that, for work done with agents.
+
+- **One private link.** The contents are encrypted in your browser before they
+  leave it. The key travels in the URL fragment, which browsers never send to a
+  server, so the service holds ciphertext it cannot read.
+- **Any agent can pick it up.** Whoever built it. The page exposes its tools
+  through WebMCP, so a second agent reads structured state rather than
+  re-deriving it from prose.
+- **Nothing gets indexed.** Handoff pages send `X-Robots-Tag: noindex`,
+  `robots.txt` disallows them, and the id is 128 random bits. A crawler cannot
+  reach one it was not handed.
+- **The work outlives the tools.** Every version is kept, and you can download
+  the whole thing as a file. If this service disappears tomorrow, you still have
+  it.
 
 **Live:** <https://handback.link> · **Source:** <https://github.com/BraedenBDev/handback>
 
 Built for the [WebMCP Challenge](https://webmcp.devpost.com).
 
-## Why this is a WebMCP product and not a file export
+## Why this is not just a file export
 
 If "ask your agent for a Markdown file" gets you the same result, this failed.
 The round trip is the difference:
 
 - Your agent packages structured state straight from its live context. Nobody
   copies a transcript or learns a schema.
-- A second agent reads that state back as data it can act on, rather than prose
-  it must re-derive.
+- A second agent reads that state back as data it can act on.
 - That agent proposes changes against a specific version, and a human sees the
   diff before anything becomes real.
-- Every version is encrypted with a key the server never receives.
+- What comes back carries its own history: who changed what, against which
+  version, sealed with a hash.
 
 ## The agent-callable surface
 
@@ -120,12 +147,16 @@ link alone, verify the seal, contribute, hit the 409 lost-update guard, retrieve
 and decrypt earlier versions, confirm the original link still opens at v2, and
 check both canonical-host redirects.
 
-`handback.link` is canonical. `www.handback.link` and the older
-`handback.braeden-bihag.workers.dev` both stay reachable and 301 to it, keeping
-path and query. Browsers carry the fragment key across the hop themselves. That
-workers.dev host stays alive on purpose: links minted there are real links, and a
-product promising that work survives should not break its own URLs for the sake
-of a tidy hostname.
+`handback.link` is canonical. A zone-level Single Redirect sends
+`www.handback.link` to it, keeping path and query, and browsers carry the
+fragment key across the hop themselves. That rule runs ahead of Workers, so
+those requests never invoke the script: 30 requests to `www` produced zero
+invocations when measured on 2026-08-27. Static assets are served by the edge
+without invoking the Worker either, which is why `run_worker_first` is off.
+
+The older `handback.braeden-bihag.workers.dev` host stays alive. Links minted
+there are real links, and a product promising that work survives should not
+break its own URLs for the sake of a tidy hostname.
 
 Schema changes live in `migrations/`:
 

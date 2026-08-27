@@ -1,0 +1,14 @@
+# Served by Workers Assets.
+
+# WebMCP is disabled outright in a document whose agent cluster is not
+# origin-keyed, and registerTool then rejects with SecurityError. The Worker
+# used to add this, but the Worker no longer runs for static paths now that
+# run_worker_first is off, so it belongs here instead.
+/*
+  Origin-Agent-Cluster: ?1
+
+# Handoff pages carry noindex regardless of how a crawler found the link, so a
+# shared link never turns into a search result.
+/h/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Referrer-Policy: no-referrer
