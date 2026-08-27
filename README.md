@@ -132,6 +132,11 @@ reduced motion produces no animations rather than shorter ones.
 API tests run inside workerd against the real Worker and a real local D1, built
 from `migrations/`. There is one implementation and these tests exercise it.
 
+The `native-webmcp` project runs the tool surface against Chromium's real
+`document.modelContext`, launched with `--enable-features=WebMCP`. Everything
+else in `e2e/` drives a faithful mock; that project is what proves the mock is
+faithful.
+
 ### Browser setup
 
 WebMCP needs Chrome 149+ with `chrome://flags/#enable-webmcp-testing` on, or
@@ -188,16 +193,6 @@ worker/index.ts      The Cloudflare Worker: API and asset serving
 migrations/          Schema, applied in order to a fresh database
 docs/                Product brief, design, prior art, WebMCP compatibility
 ```
-
-## Still to do
-
-- A YouTube demo under three minutes with audio, for the submission.
-- Automated browser checks against a real WebMCP client. The end-to-end suite
-  drives a faithful mock, so nothing catches a regression in a live browser.
-- An MCP adapter for agents outside a browser. A CLI agent currently needs the
-  fragment key and its own decrypt, which is the "recipient must understand
-  cryptography" failure `docs/PRIOR-ART-AND-NOGO.md` rules out.
-- Revocation and expiry.
 
 ## License
 

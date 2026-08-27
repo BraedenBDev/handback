@@ -29,6 +29,16 @@ hackathon project with no production users, so there is no embargo process.
 - **Contributions only add.** No delete operation exists, since a reviewer will
   spot added text long before they notice text that went missing.
 
+## No revocation
+
+A link cannot be withdrawn. There is no owner account to authenticate against,
+so there is nobody the service could accept a revocation from except whoever
+holds the link, and that is everyone it was ever shared with. Handoffs also have
+no expiry: a link works until the data is deleted by hand.
+
+If a link reaches someone it should not have, treat the contents as disclosed.
+Create a fresh handoff rather than trying to recall the old one.
+
 ## Threat model in one line
 
 A link is a bearer capability. Whoever holds the whole link, fragment included,
