@@ -5,12 +5,14 @@ import { createHandoff } from "./api.ts";
 import { stampDocument } from "./hash.ts";
 import { ImportError, readPortableFile } from "./import.ts";
 import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
+import { DEFAULT_RETENTION_DAYS, RETENTION_CHOICES, describeExpiry } from "../shared/expiry.ts";
 import { readAutoApprove } from "./auto-approve.ts";
 import { ApprovalMode, ErrorNote, Field, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
 
 export function CreatePage() {
   const [draft, setDraft] = useState<HandoffState | null>(null);
-  const [created, setCreated] = useState<{ url: string; version: number; hash: string } | null>(null);
+  const [created, setCreated] = useState<{ url: string; version: number; hash: string; expiresAt: string | null } | null>(null);
+  const [retentionDays, setRetentionDays] = useState<number | null>(DEFAULT_RETENTION_DAYS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -19,8 +21,8 @@ export function CreatePage() {
 
   // The tools read live state through a ref so registration happens once per
   // document (re-registering a name throws) while still seeing current values.
-  const latest = useRef({ created });
-  latest.current = { created };
+  const latest = useRef({ created, retentionDays });
+  latest.current = { created, retentionDays };
 
   useEffect(() => {
     const bridge: WebMcpBridge = {
@@ -80,8 +82,8 @@ export function CreatePage() {
       // and is never regenerated for later versions.
       const key = await generateKey();
       const envelope = await encryptDocument(key, doc);
-      const { id, version } = await createHandoff(envelope);
-      const receipt = { url: buildHandoffUrl(location.origin, id, await exportKey(key)), version };
+      const { id, version, expiresAt } = await createHandoff(envelope, latest.current.retentionDays);
+      const receipt = { url: buildHandoffUrl(location.origin, id, await exportKey(key)), version, expiresAt };
       setCreated({ ...receipt, hash: doc.contentHash! });
       return receipt;
     } catch (cause) {
@@ -120,6 +122,15 @@ export function CreatePage() {
             <p className="caution">
               The key after the <code>#</code> never reaches the server. Anyone holding the whole link can read this
               handoff, so treat it like a password.
+              {created.expiresAt ? (
+                <>
+                  {" "}
+                  It expires {describeExpiry(created.expiresAt)}, counted from the last change, after which the
+                  contents are deleted. Download a copy if you want to keep it.
+                </>
+              ) : (
+                <> It has no expiry, so it stays until someone deletes it.</>
+              )}
             </p>
             <div className="link-row">
               <input
@@ -173,6 +184,19 @@ export function CreatePage() {
               Your agent assembled this. Nothing has been encrypted, saved or shared yet, and nothing will be until you
               approve it.
             </p>
+            <label className="retention">
+              <span className="label-text">Keep it for</span>
+              <select
+                value={String(retentionDays)}
+                onChange={(event) => setRetentionDays(event.target.value === "null" ? null : Number(event.target.value))}
+              >
+                {RETENTION_CHOICES.map((choice) => (
+                  <option key={String(choice.days)} value={String(choice.days)}>
+                    {choice.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="actions">
               <button className="primary" onClick={approveAndCreate} disabled={busy}>
                 {busy ? "Encrypting" : "Approve and create"}

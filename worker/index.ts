@@ -8,6 +8,7 @@
  * check in its WHERE clause so two racing writers cannot both win.
  */
 import type { Envelope } from "../shared/schema.ts";
+import { DEFAULT_RETENTION_DAYS, expiryFrom, hasExpired, isValidRetention } from "../shared/expiry.ts";
 
 type Env = { DB: D1Database; ASSETS: Fetcher };
 
@@ -46,12 +47,33 @@ function isEnvelope(value: unknown): value is Envelope {
   );
 }
 
+async function deleteHandoff(env: Env, id: string): Promise<void> {
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM envelopes WHERE handoffId = ?").bind(id),
+    env.DB.prepare("DELETE FROM handoffs WHERE id = ?").bind(id),
+  ]);
+}
+
 function newHandoffId(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 export default {
+  /**
+   * Lazy deletion only removes a handoff when somebody asks for it. This sweep
+   * catches the ones nobody comes back to, so "expires in 7 days" means the
+   * ciphertext is gone rather than merely unserved.
+   */
+  async scheduled(_event: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
+    const now = new Date().toISOString();
+    const stale = await env.DB.prepare(
+      "SELECT id FROM handoffs WHERE expiresAt IS NOT NULL AND expiresAt <= ?",
+    ).bind(now).all<{ id: string }>();
+    for (const { id } of stale.results) await deleteHandoff(env, id);
+    if (stale.results.length) console.log(`swept ${stale.results.length} expired handoff(s)`);
+  },
+
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
@@ -63,20 +85,25 @@ export default {
     if (!url.pathname.startsWith("/api/")) return withAgentHeaders(await env.ASSETS.fetch(request));
 
     if (url.pathname === "/api/h" && request.method === "POST") {
-      const body = await request.json().catch(() => null) as { envelope?: unknown } | null;
+      const body = await request.json().catch(() => null) as { envelope?: unknown; retentionDays?: unknown } | null;
       if (!isEnvelope(body?.envelope)) return json({ error: "invalid_envelope" }, 400);
+
+      const retentionDays = body?.retentionDays === undefined ? DEFAULT_RETENTION_DAYS : body.retentionDays;
+      if (!isValidRetention(retentionDays)) return json({ error: "invalid_retention" }, 400);
 
       const id = newHandoffId();
       const now = new Date().toISOString();
+      const expiresAt = expiryFrom(retentionDays as number | null, now);
       const envelope = body!.envelope as Envelope;
       await env.DB.batch([
-        env.DB.prepare("INSERT INTO handoffs (id, currentVersion, createdAt, updatedAt) VALUES (?, 1, ?, ?)")
-          .bind(id, now, now),
+        env.DB.prepare(
+          "INSERT INTO handoffs (id, currentVersion, createdAt, updatedAt, retentionDays, expiresAt) VALUES (?, 1, ?, ?, ?, ?)",
+        ).bind(id, now, now, retentionDays as number | null, expiresAt),
         env.DB.prepare(
           "INSERT INTO envelopes (handoffId, version, format, iv, ciphertext, createdAt) VALUES (?, 1, ?, ?, ?, ?)",
         ).bind(id, envelope.format, envelope.iv, envelope.ciphertext, now),
       ]);
-      return json({ id, version: 1 }, 201);
+      return json({ id, version: 1, expiresAt }, 201);
     }
 
     const versionsMatch = /^\/api\/h\/([^/]+)\/versions$/.exec(url.pathname);
@@ -96,9 +123,17 @@ export default {
       if (!ID_PATTERN.test(id)) return json({ error: "invalid_id" }, 400);
 
       if (request.method === "GET") {
-        const handoff = await env.DB.prepare("SELECT id, currentVersion FROM handoffs WHERE id = ?")
-          .bind(id).first<{ id: string; currentVersion: number }>();
+        const handoff = await env.DB.prepare(
+          "SELECT id, currentVersion, expiresAt FROM handoffs WHERE id = ?",
+        ).bind(id).first<{ id: string; currentVersion: number; expiresAt: string | null }>();
         if (!handoff) return json({ error: "not_found" }, 404);
+
+        // Expired handoffs are deleted on the way past rather than left to a
+        // sweep, so the ciphertext goes at the first moment anyone asks.
+        if (hasExpired(handoff.expiresAt)) {
+          await deleteHandoff(env, id);
+          return json({ error: "expired", expiredAt: handoff.expiresAt }, 410);
+        }
 
         // ?version=N reads an earlier envelope. Nothing is ever deleted, so an
         // approval that turns out to be wrong can still be recovered from.
@@ -112,6 +147,7 @@ export default {
         if (!row) return json({ error: "version_not_found", currentVersion: handoff.currentVersion }, 404);
         return json({
           id, version: requested, currentVersion: handoff.currentVersion,
+          expiresAt: handoff.expiresAt,
           envelope: { format: row.format, iv: row.iv, ciphertext: row.ciphertext },
         });
       }
@@ -126,9 +162,14 @@ export default {
           return json({ error: "expected_version_required" }, 400);
         }
 
-        const handoff = await env.DB.prepare("SELECT currentVersion FROM handoffs WHERE id = ?")
-          .bind(id).first<{ currentVersion: number }>();
+        const handoff = await env.DB.prepare(
+          "SELECT currentVersion, retentionDays, expiresAt FROM handoffs WHERE id = ?",
+        ).bind(id).first<{ currentVersion: number; retentionDays: number | null; expiresAt: string | null }>();
         if (!handoff) return json({ error: "not_found" }, 404);
+        if (hasExpired(handoff.expiresAt)) {
+          await deleteHandoff(env, id);
+          return json({ error: "expired", expiredAt: handoff.expiresAt }, 410);
+        }
         if (handoff.currentVersion !== expectedVersion) {
           return json({ error: "version_conflict", currentVersion: handoff.currentVersion, expectedVersion }, 409);
         }
@@ -148,11 +189,14 @@ export default {
           return json({ error: "version_conflict", currentVersion: nextVersion }, 409);
         }
 
+        // The window slides from this write, so a handoff being worked on does
+        // not expire under whoever is working on it.
+        const renewed = expiryFrom(handoff.retentionDays, now);
         await env.DB.prepare(
-          "UPDATE handoffs SET currentVersion = ?, updatedAt = ? WHERE id = ? AND currentVersion = ?",
-        ).bind(nextVersion, now, id, expectedVersion).run();
+          "UPDATE handoffs SET currentVersion = ?, updatedAt = ?, expiresAt = ? WHERE id = ? AND currentVersion = ?",
+        ).bind(nextVersion, now, renewed, id, expectedVersion).run();
 
-        return json({ id, version: nextVersion });
+        return json({ id, version: nextVersion, expiresAt: renewed });
       }
     }
 

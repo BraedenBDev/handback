@@ -2,6 +2,8 @@
 
 **Hand off the work. Get it back intact.**
 
+*WeTransfer for AI conversations.*
+
 You spend an hour with an agent and it builds something worth keeping. Now try
 to move it somewhere.
 
@@ -31,6 +33,10 @@ Handback is that, for work done with agents.
 - **Nothing gets indexed.** Handoff pages send `X-Robots-Tag: noindex`,
   `robots.txt` disallows them, and the id is 128 random bits. A crawler cannot
   reach one it was not handed.
+- **It does not hang around forever.** Handoffs expire seven days after the last
+  change by default, and you pick the window when you create one. The countdown
+  slides, so something still being worked on does not vanish under whoever is
+  working on it.
 - **The work outlives the tools.** Every version is kept, and you can download
   the whole thing as a file. If this service disappears tomorrow, you still have
   it.
@@ -65,6 +71,10 @@ saved. You read it, cut the line you would rather not share, and click
 
 You get one link. That is the whole artifact. Close everything else.
 
+Before you approve, you choose how long it should live: 24 hours, 7 days, 30
+days, or never. Seven days is the default. The clock runs from the last change
+rather than from creation, so it resets each time someone contributes.
+
 Send it to a friend, or keep it for yourself and open it next month. Whoever
 opens it points their agent at it and asks what they are picking up. The agent
 reads the state directly and continues, without re-deriving anything from a
@@ -73,6 +83,9 @@ transcript.
 When they find something, their agent proposes it against the version they
 read. You see the change as a diff and decide. Every version is kept, so
 reopening the same link later shows you what happened while you were away.
+
+When a handoff does expire, the ciphertext is deleted. Nobody can recover it,
+including us: the server never held the key. Download a copy if it matters.
 
 If clicking twice is friction you do not want, there is a switch. Flip it once
 and that browser stops asking.

@@ -29,15 +29,22 @@ hackathon project with no production users, so there is no embargo process.
 - **Contributions only add.** No delete operation exists, since a reviewer will
   spot added text long before they notice text that went missing.
 
-## No revocation
+## Expiry, and the absence of revocation
 
-A link cannot be withdrawn. There is no owner account to authenticate against,
-so there is nobody the service could accept a revocation from except whoever
-holds the link, and that is everyone it was ever shared with. Handoffs also have
-no expiry: a link works until the data is deleted by hand.
+Handoffs expire. The creator picks the window at approval time and seven days is
+the default, measured from the last approved change rather than from creation.
+On expiry the ciphertext is deleted: first read past the deadline removes it, and
+a daily sweep catches whatever nobody came back to. Deletion is real. Nothing can
+recover the contents afterwards, including the operator, because the server never
+held the key.
+
+There is no revocation. Expiry is a timer, not a kill switch, and nothing here
+withdraws a link early. Adding one would mean accepting the instruction from
+whoever holds the link, which is everyone it was shared with, so a mis-sent link
+would be destroyable by its recipient.
 
 If a link reaches someone it should not have, treat the contents as disclosed.
-Create a fresh handoff rather than trying to recall the old one.
+Shorten the window on the next one rather than trying to recall this one.
 
 ## Threat model in one line
 

@@ -11,7 +11,7 @@
     "dev:client": "vite",
     "build": "tsc --noEmit && vite build",
     "start": "npm run build && wrangler dev --port 8787",
-    "db:local": "wrangler d1 execute handback --local --file=./migrations/0001_initial.sql",
+    "db:local": "node scripts/migrate-local.mjs .wrangler/state",
     "test": "vitest run && vitest run -c vitest.workers.config.ts",
     "test:e2e": "playwright test",
     "test:all": "npm test && playwright test",

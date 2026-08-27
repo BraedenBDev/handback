@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import type { Contribution, HandoffDocument, ReadSection } from "../shared/schema.ts";
 import { decryptDocument, encryptDocument, importKey, readKeyFromFragment } from "./crypto.ts";
-import { fetchHandoff, updateHandoff, VersionConflictError } from "./api.ts";
+import { ExpiredError, fetchHandoff, updateHandoff, VersionConflictError } from "./api.ts";
 import { applyContribution, describeContribution, StaleBaseError } from "./contribution.ts";
 import { stampDocument, verifyDocument, type SealVerdict } from "./hash.ts";
 import { downloadFile, toMarkdown, toPortableJson } from "./export.ts";
 import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
+import { describeExpiry } from "../shared/expiry.ts";
 import { readAutoApprove } from "./auto-approve.ts";
 import { ApprovalMode, ErrorNote, Field, HistoryView, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
 
 export function HandoffPage({ id }: { id: string }) {
   const [doc, setDoc] = useState<HandoffDocument | null>(null);
   const [seal, setSeal] = useState<SealVerdict>("verified");
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [expired, setExpired] = useState(false);
   const [staged, setStaged] = useState<Contribution | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,10 +42,16 @@ export function HandoffPage({ id }: { id: string }) {
         if (cancelled) return;
         setDoc(decrypted);
         setSeal(verdict);
+        setExpiresAt(stored.expiresAt);
         setLoading(false);
       } catch (cause) {
         if (cancelled) return;
         setLoading(false);
+        if (cause instanceof ExpiredError) {
+          setExpired(true);
+          setError(null);
+          return;
+        }
         setError(
           cause instanceof Error && cause.name === "OperationError"
             ? "That key does not decrypt this handoff. The link may be truncated, or from a different handoff."
@@ -126,7 +135,8 @@ export function HandoffPage({ id }: { id: string }) {
     try {
       const next = await stampDocument(applyContribution(base, contribution));
       // Same key, new IV. The link already shared keeps working.
-      await updateHandoff(id, await encryptDocument(key, next), base.version);
+      const saved = await updateHandoff(id, await encryptDocument(key, next), base.version);
+      setExpiresAt(saved.expiresAt);
       setDoc(next);
       setSeal(await verifyDocument(next));
       setStaged(null);
@@ -138,6 +148,8 @@ export function HandoffPage({ id }: { id: string }) {
         );
       } else if (cause instanceof StaleBaseError) {
         setError(cause.message);
+      } else if (cause instanceof ExpiredError) {
+        setExpired(true);
       } else {
         setError(cause instanceof Error ? cause.message : "Could not save the contribution.");
       }
@@ -152,6 +164,24 @@ export function HandoffPage({ id }: { id: string }) {
       <main>
         <Masthead />
         <p className="loading">Decrypting…</p>
+      </main>
+    );
+  }
+
+  if (expired) {
+    return (
+      <main>
+        <Masthead />
+        <Field label="Expired" index={0}>
+          <p className="lede">This handoff has expired.</p>
+          <p className="muted">
+            Its contents were deleted on the schedule the person who created it chose. Nothing here can recover them,
+            and neither can we: the server never held the key.
+          </p>
+          <p className="muted">
+            <a href="/">Start a new handoff</a>
+          </p>
+        </Field>
       </main>
     );
   }
@@ -171,6 +201,11 @@ export function HandoffPage({ id }: { id: string }) {
   return (
     <main>
       <Masthead>
+        {expiresAt ? (
+          <span className="expiry" title={`Deleted ${new Date(expiresAt).toLocaleString()} unless it changes again`}>
+            expires {describeExpiry(expiresAt)}
+          </span>
+        ) : null}
         <Seal version={doc.version} hash={doc.contentHash} verdict={seal} />
       </Masthead>
 
@@ -218,6 +253,7 @@ export function HandoffPage({ id }: { id: string }) {
         <p className="muted">
           These save to your own device in the clear, so you keep the work if this service disappears. The JSON can be
           brought back in from the front page.
+          {expiresAt ? " Worth doing before it expires." : ""}
         </p>
         <div className="actions">
           <button onClick={() => downloadFile(`handback-${id}.json`, toPortableJson(doc), "application/json")}>

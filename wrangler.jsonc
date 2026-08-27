@@ -24,5 +24,7 @@
       "database_id": "86797b24-bbf8-4f6f-850a-1d552ca3cab0"
     }
   ],
+  // Daily sweep for handoffs that expired without anyone revisiting them.
+  "triggers": { "crons": ["17 3 * * *"] },
   "observability": { "enabled": true }
 }

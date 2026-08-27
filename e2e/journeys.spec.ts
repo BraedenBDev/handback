@@ -208,3 +208,53 @@ test.describe("approval mode", () => {
     await expect(page.getByRole("button", { name: "Approve and create" })).toBeVisible();
   });
 });
+
+test.describe("expiry", () => {
+  test("offers a window at approval, defaulting to a week", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Objective").fill("Pick a window");
+    await page.getByLabel("Where the work stands").fill("Choosing how long this lives.");
+    await page.getByRole("button", { name: "Stage handoff" }).click();
+
+    const picker = page.getByLabel("Keep it for");
+    await expect(picker).toBeVisible();
+    await expect(picker).toHaveValue("7");
+    await expect(picker.locator("option")).toHaveText(["24 hours", "7 days", "30 days", "Never"]);
+  });
+
+  test("tells you when it expires, and that a copy is worth taking", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Objective").fill("Expiring soon");
+    await page.getByLabel("Where the work stands").fill("A day is plenty.");
+    await page.getByRole("button", { name: "Stage handoff" }).click();
+    await page.getByLabel("Keep it for").selectOption("1");
+    await page.getByRole("button", { name: "Approve and create" }).click();
+
+    // A whisker under 24 hours by the time the page renders, so match the shape.
+    await expect(page.getByText(/expires in \d+ hours/i)).toBeVisible();
+    await expect(page.getByText(/Download a copy/i)).toBeVisible();
+  });
+
+  test("says plainly when a handoff never expires", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Objective").fill("Permanent record");
+    await page.getByLabel("Where the work stands").fill("This one stays.");
+    await page.getByRole("button", { name: "Stage handoff" }).click();
+    await page.getByLabel("Keep it for").selectOption("null");
+    await page.getByRole("button", { name: "Approve and create" }).click();
+
+    await expect(page.getByText(/no expiry/i)).toBeVisible();
+  });
+
+  test("shows the remaining time on the handoff itself", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Objective").fill("Countdown visible");
+    await page.getByLabel("Where the work stands").fill("Shown next to the seal.");
+    await page.getByRole("button", { name: "Stage handoff" }).click();
+    await page.getByRole("button", { name: "Approve and create" }).click();
+    const url = await page.locator("input.link").inputValue();
+
+    await page.goto(url);
+    await expect(page.locator(".expiry")).toContainText(/expires in \d+ days?/);
+  });
+});

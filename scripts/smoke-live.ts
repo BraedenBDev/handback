@@ -23,10 +23,25 @@ const v1: HandoffDocument = await stampDocument({
 const key = await generateKey();
 const created = await fetch(`${base}/api/h`, {
   method: "POST", headers: { "content-type": "application/json" },
-  body: JSON.stringify({ envelope: await encryptDocument(key, v1) }),
+  body: JSON.stringify({ envelope: await encryptDocument(key, v1), retentionDays: 1 }),
 });
 check("POST /api/h returns 201", created.status === 201);
-const { id } = await created.json() as { id: string };
+const { id, expiresAt } = await created.json() as { id: string; expiresAt: string | null };
+
+const hoursLeft = expiresAt ? (new Date(expiresAt).getTime() - Date.now()) / 3_600_000 : -1;
+check("a requested expiry window is honoured", hoursLeft > 23.5 && hoursLeft < 24.5);
+
+const neverExpires = await fetch(`${base}/api/h`, {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ envelope: await encryptDocument(key, v1), retentionDays: null }),
+});
+check("a never-expiring handoff stores no expiry", ((await neverExpires.json()) as any).expiresAt === null);
+
+const badWindow = await fetch(`${base}/api/h`, {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ envelope: await encryptDocument(key, v1), retentionDays: 9999 }),
+});
+check("an out-of-range expiry window is refused", badWindow.status === 400);
 
 const link = `${base}/h/${id}#k=${await exportKey(key)}`;
 
@@ -49,6 +64,8 @@ const put = await fetch(`${base}/api/h/${id}`, {
   body: JSON.stringify({ envelope: await encryptDocument(key, v2), expectedVersion: reopened.version }),
 });
 check("PUT with correct expectedVersion returns 200", put.status === 200);
+const renewed = ((await put.clone().json()) as any).expiresAt as string | null;
+check("the expiry window slides on a contribution", !!renewed && new Date(renewed) > new Date(expiresAt!));
 
 // The lost-update guard.
 const conflict = await fetch(`${base}/api/h/${id}`, {

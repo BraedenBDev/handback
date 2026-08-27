@@ -545,3 +545,14 @@ code {
   white-space: nowrap;
 }
 .source-link:hover { border-color: var(--ink-muted); }
+
+.expiry {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.retention { display: flex; align-items: center; gap: 0.6rem; margin: 0 0 1rem; }
+.retention .label-text { margin: 0; }
+.retention select { width: auto; min-width: 9rem; }
