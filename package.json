@@ -11,12 +11,13 @@
     "dev:client": "vite",
     "build": "tsc --noEmit && vite build",
     "start": "npm run build && wrangler dev --port 8787",
-    "db:local": "node scripts/migrate-local.mjs .wrangler/state",
+    "db:local": "wrangler d1 migrations apply handback --local",
     "test": "vitest run && vitest run -c vitest.workers.config.ts",
     "test:e2e": "playwright test",
     "test:all": "npm test && playwright test",
     "deploy": "npm run build && wrangler deploy",
-    "smoke": "node scripts/smoke-live.ts https://handback.link"
+    "smoke": "node scripts/smoke-live.ts https://handback.link",
+    "db:remote": "wrangler d1 migrations apply handback --remote"
   },
   "dependencies": {
     "react": "^19.1.0",
