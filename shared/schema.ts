@@ -207,11 +207,16 @@ export type HandoffDocument = {
   version: number;
   createdAt: string;
   updatedAt: string;
+  /** SHA-256 of this version's state bound to its version and parent. */
+  contentHash?: string;
+  /** The contentHash of the version this descends from. null at version 1. */
+  parentHash?: string | null;
   history: Array<{
     version: number;
     note: string;
     operations: ContributionOp[];
     approvedAt: string;
+    contentHash?: string;
   }>;
 };
 

@@ -15,7 +15,8 @@ export function toMarkdown(doc: HandoffDocument): string {
   const lines: string[] = [
     `# ${state.objective}`,
     "",
-    `*Handback version ${doc.version} — updated ${doc.updatedAt}*`,
+    `*Handback version ${doc.version}. Updated ${doc.updatedAt}.*`,
+    ...(doc.contentHash ? [`*Seal ${doc.contentHash.slice(0, 8)}*`] : []),
     "",
     "## Where this stands",
     "",
@@ -25,7 +26,7 @@ export function toMarkdown(doc: HandoffDocument): string {
 
   if (state.decisions?.length) {
     lines.push("## Decisions", "");
-    for (const item of state.decisions) lines.push(`- **${item.decision}** — ${item.rationale}`);
+    for (const item of state.decisions) lines.push(`- **${item.decision}**`, `  ${item.rationale}`);
     lines.push("");
   }
   if (state.constraints?.length) {
@@ -51,7 +52,7 @@ export function toMarkdown(doc: HandoffDocument): string {
   if (state.handoffNote) lines.push("## Note to whoever picks this up", "", state.handoffNote, "");
   if (doc.history.length) {
     lines.push("## History", "");
-    for (const entry of doc.history) lines.push(`- v${entry.version} — ${entry.note} (${entry.approvedAt})`);
+    for (const entry of doc.history) lines.push(`- v${entry.version}: ${entry.note} (${entry.approvedAt})`);
     lines.push("");
   }
   return lines.join("\n");

@@ -66,11 +66,15 @@ export function applyContribution(
     }
   }
 
+  // parentHash links this version to the one it descends from. contentHash is
+  // left for stampDocument() to compute, because hashing is async and keeping
+  // this function synchronous keeps the rules testable without a crypto stub.
   return {
     state,
     version: doc.version + 1,
     createdAt: doc.createdAt,
     updatedAt: now,
+    parentHash: doc.contentHash ?? null,
     history: [
       ...doc.history,
       {

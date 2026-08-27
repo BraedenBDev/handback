@@ -134,13 +134,13 @@ test("a second agent reads the handoff, contributes, and a human approves", asyn
   expect(good.status).toBe("staged_awaiting_human_approval");
 
   await second.getByRole("button", { name: "Approve contribution" }).click();
-  await expect(second.getByText("Version 2")).toBeVisible();
+  await expect(second.locator(".seal .seal-version")).toHaveText("v2");
 
   // The ORIGINAL link still opens. This is the regression that sank the first build.
   const third = await page.context().newPage();
   await installWebMcp(third);
   await third.goto(url);
-  await expect(third.getByText("Version 2")).toBeVisible();
+  await expect(third.locator(".seal .seal-version")).toHaveText("v2");
   await expect(third.getByText("Marking it done")).toBeVisible();
 });
 

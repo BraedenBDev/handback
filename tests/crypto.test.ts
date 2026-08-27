@@ -52,7 +52,13 @@ describe("envelope encryption", () => {
     await expect(decryptDocument(keyFromOriginalLink, envelopeV2)).resolves.toMatchObject({ version: 2 });
   });
 
-  it("rejects a key that is not 256 bits", async () => {
-    await expect(importKey("c2hvcnQ")).rejects.toThrow(/256 bits/);
+  it("explains a wrong-length key in words a person can act on", async () => {
+    await expect(importKey("c2hvcnQ")).rejects.toThrow(/truncated/);
+  });
+
+  it("explains a malformed key instead of leaking atob's internal message", async () => {
+    // A user who mangles a link should not be shown a DOM exception.
+    await expect(importKey("!!!not base64 at all!!!")).rejects.toThrow(/malformed/);
+    await expect(importKey("!!!not base64 at all!!!")).rejects.not.toThrow(/atob/);
   });
 });

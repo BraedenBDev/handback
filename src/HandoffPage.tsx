@@ -2,22 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import type { Contribution, HandoffDocument, ReadSection } from "../shared/schema.ts";
 import { decryptDocument, encryptDocument, importKey, readKeyFromFragment } from "./crypto.ts";
 import { fetchHandoff, updateHandoff, VersionConflictError } from "./api.ts";
-import { applyContribution, describeContribution } from "./contribution.ts";
+import { applyContribution, describeContribution, StaleBaseError } from "./contribution.ts";
+import { stampDocument, verifyDocument, type SealVerdict } from "./hash.ts";
 import { downloadFile, toMarkdown, toPortableJson } from "./export.ts";
 import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
-import { ErrorNote, HistoryView, StateView, ToolStatus, UntrustedBadge } from "./ui.tsx";
+import { ErrorNote, Field, HistoryView, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
 
 export function HandoffPage({ id }: { id: string }) {
   const [doc, setDoc] = useState<HandoffDocument | null>(null);
+  const [seal, setSeal] = useState<SealVerdict>("verified");
   const [staged, setStaged] = useState<Contribution | null>(null);
-  const [status, setStatus] = useState<string>("Decrypting…");
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [webMcp] = useState(isWebMcpAvailable);
 
-  // The content key, imported once from the fragment and reused for every
-  // later write. Regenerating it on update would invalidate the link the user
-  // already handed out — the exact bug that sank the first implementation.
+  // The content key, imported once from the fragment and reused for every later
+  // write. Regenerating it on update would invalidate the link already handed
+  // out — the exact bug that sank the first implementation.
   const keyRef = useRef<CryptoKey | null>(null);
   const latest = useRef<{ doc: HandoffDocument | null }>({ doc: null });
   latest.current = { doc };
@@ -27,20 +29,22 @@ export function HandoffPage({ id }: { id: string }) {
     (async () => {
       try {
         const encoded = readKeyFromFragment(location.hash);
-        if (!encoded) throw new Error("This link is missing its key. Copy the whole link, including the part after #.");
+        if (!encoded) throw new Error("This link is missing its key. Copy the whole link, including the part after the #.");
         const key = await importKey(encoded);
         keyRef.current = key;
         const stored = await fetchHandoff(id);
         const decrypted = await decryptDocument(key, stored.envelope);
+        const verdict = await verifyDocument(decrypted);
         if (cancelled) return;
         setDoc(decrypted);
-        setStatus("");
+        setSeal(verdict);
+        setLoading(false);
       } catch (cause) {
         if (cancelled) return;
-        setStatus("");
+        setLoading(false);
         setError(
           cause instanceof Error && cause.name === "OperationError"
-            ? "That key does not decrypt this handoff. The link may be truncated or from a different handoff."
+            ? "That key does not decrypt this handoff. The link may be truncated, or from a different handoff."
             : cause instanceof Error
               ? cause.message
               : "Could not open this handoff.",
@@ -94,17 +98,19 @@ export function HandoffPage({ id }: { id: string }) {
     setBusy(true);
     setError(null);
     try {
-      const next = applyContribution(doc, staged);
-      // Same key, new IV. The link the user shared keeps working.
-      const envelope = await encryptDocument(key, next);
-      await updateHandoff(id, envelope, doc.version);
+      const next = await stampDocument(applyContribution(doc, staged));
+      // Same key, new IV. The link already shared keeps working.
+      await updateHandoff(id, await encryptDocument(key, next), doc.version);
       setDoc(next);
+      setSeal(await verifyDocument(next));
       setStaged(null);
     } catch (cause) {
       if (cause instanceof VersionConflictError) {
         setError(
-          `Someone else saved a change first — this handoff is now at version ${cause.currentVersion}. Reload and ask your agent to propose again against the new version.`,
+          `Someone else saved a change first, so this handoff is now at version ${cause.currentVersion}. Reload and ask your agent to propose again against the new version.`,
         );
+      } else if (cause instanceof StaleBaseError) {
+        setError(cause.message);
       } else {
         setError(cause instanceof Error ? cause.message : "Could not save the contribution.");
       }
@@ -113,24 +119,51 @@ export function HandoffPage({ id }: { id: string }) {
     }
   }
 
-  if (status) return <main><p>{status}</p></main>;
-  if (!doc) return <main><h1>Handback</h1><ErrorNote error={error} /></main>;
+  if (loading) {
+    return (
+      <main>
+        <Masthead />
+        <p className="loading">Decrypting…</p>
+      </main>
+    );
+  }
+
+  if (!doc) {
+    return (
+      <main>
+        <Masthead />
+        <ErrorNote error={error} />
+        <p className="muted">
+          <a href="/">Start a new handoff</a>
+        </p>
+      </main>
+    );
+  }
 
   return (
     <main>
-      <h1>Handback</h1>
-      <p className="tagline">
-        Version {doc.version} · updated {new Date(doc.updatedAt).toLocaleString()}
-      </p>
+      <Masthead>
+        <Seal version={doc.version} hash={doc.contentHash} verdict={seal} />
+      </Masthead>
+
       <ToolStatus available={webMcp} />
       <ErrorNote error={error} />
 
+      {seal === "mismatch" ? (
+        <p className="error" role="alert">
+          This version's contents do not match its recorded seal, which means it was changed outside the approval path.
+          Treat everything below as unverified.
+        </p>
+      ) : null}
+
       {staged ? (
-        <section className="proposal">
-          <h2>
-            Proposed changes <UntrustedBadge />
-          </h2>
-          <p className="muted">{staged.note}</p>
+        <section className="pending">
+          <div className="pending-head">
+            <span className="pending-mark" aria-hidden="true" />
+            Awaiting you
+          </div>
+          <h2>Proposed changes</h2>
+          <p className="pending-note">{staged.note}</p>
           <ul className="diff">
             {describeContribution(staged).map((line, index) => (
               <li key={index}>{line}</li>
@@ -138,39 +171,41 @@ export function HandoffPage({ id }: { id: string }) {
           </ul>
           <div className="actions">
             <button className="primary" onClick={approveContribution} disabled={busy}>
-              {busy ? "Saving…" : "Approve contribution"}
+              {busy ? "Saving" : "Approve contribution"}
             </button>
-            <button onClick={() => setStaged(null)} disabled={busy}>
+            <button className="quiet" onClick={() => setStaged(null)} disabled={busy}>
               Reject
             </button>
           </div>
         </section>
       ) : null}
 
-      <StateView state={doc.state} />
+      <StateView state={doc.state} from={staged ? 1 : 0} />
       <HistoryView doc={doc} />
 
       {!staged ? <ManualContributionForm baseVersion={doc.version} onStage={setStaged} /> : null}
 
-      <section className="exports">
-        <h3>Take it with you</h3>
+      <Field label="Take it with you" index={10}>
         <p className="muted">
-          These files save to your own device in the clear, so you keep the work if this service disappears.
+          These save to your own device in the clear, so you keep the work if this service disappears. The JSON can be
+          brought back in from the front page.
         </p>
-        <button onClick={() => downloadFile(`handback-${id}.json`, toPortableJson(doc), "application/json")}>
-          Download portable file
-        </button>{" "}
-        <button onClick={() => downloadFile(`handback-${id}.md`, toMarkdown(doc), "text/markdown")}>
-          Download Markdown
-        </button>
-      </section>
+        <div className="actions">
+          <button onClick={() => downloadFile(`handback-${id}.json`, toPortableJson(doc), "application/json")}>
+            Portable file
+          </button>
+          <button onClick={() => downloadFile(`handback-${id}.md`, toMarkdown(doc), "text/markdown")}>Markdown</button>
+        </div>
+      </Field>
     </main>
   );
 }
 
-/** Fallback contribution path. The first implementation shipped a fallback that
- *  could create a handoff but not contribute to one, which broke the whole
- *  round trip in any browser without WebMCP. */
+/**
+ * Fallback contribution path. An earlier implementation shipped a fallback that
+ * could create a handoff but not contribute to one, which broke the round trip
+ * in any browser without WebMCP.
+ */
 function ManualContributionForm({
   baseVersion,
   onStage,
@@ -184,7 +219,7 @@ function ManualContributionForm({
 
   return (
     <form
-      className="manual"
+      className="compose"
       onSubmit={(event) => {
         event.preventDefault();
         onStage({ baseVersion, note, operations: [{ op, value }] });
@@ -192,9 +227,13 @@ function ManualContributionForm({
         setValue("");
       }}
     >
-      <h3>Propose a change yourself</h3>
+      <h2>Propose a change</h2>
+      <p className="compose-intro muted">
+        Staged for review against version {baseVersion}. Nothing is written until someone approves it.
+      </p>
+
       <label>
-        What kind
+        <span className="label-text">What kind</span>
         <select value={op} onChange={(event) => setOp(event.target.value)}>
           <option value="add_decision">Add a decision</option>
           <option value="add_task">Add a task</option>
@@ -203,14 +242,17 @@ function ManualContributionForm({
         </select>
       </label>
       <label>
-        Content
+        <span className="label-text">Content</span>
         <textarea required rows={3} value={value} onChange={(event) => setValue(event.target.value)} />
       </label>
       <label>
-        Why (shown to the reviewer)
-        <input required value={note} onChange={(event) => setNote(event.target.value)} />
+        <span className="label-text">Why this change</span>
+        <input type="text" required value={note} onChange={(event) => setNote(event.target.value)} />
       </label>
-      <button type="submit">Stage contribution</button>
+
+      <button type="submit" className="primary">
+        Stage contribution
+      </button>
     </form>
   );
 }

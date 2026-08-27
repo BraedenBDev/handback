@@ -19,7 +19,14 @@ export function toBase64Url(bytes: Uint8Array): string {
 
 export function fromBase64Url(text: string): Uint8Array {
   const padded = text.replace(/-/g, "+").replace(/_/g, "/");
-  const binary = atob(padded + "=".repeat((4 - (padded.length % 4)) % 4));
+  let binary: string;
+  try {
+    binary = atob(padded + "=".repeat((4 - (padded.length % 4)) % 4));
+  } catch {
+    // atob's own message ("The string to be decoded is not correctly encoded")
+    // ends up in front of the user, who pasted a link, not a base64 string.
+    throw new Error("This link's key is malformed. Copy the whole link again, including everything after the #.");
+  }
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
@@ -37,7 +44,9 @@ export async function exportKey(key: CryptoKey): Promise<string> {
 
 export async function importKey(encoded: string): Promise<CryptoKey> {
   const raw = fromBase64Url(encoded);
-  if (raw.byteLength !== 32) throw new Error("Handback key must be 256 bits");
+  if (raw.byteLength !== 32) {
+    throw new Error("This link's key is the wrong length, so the link was probably truncated. Copy the whole thing again.");
+  }
   return globalThis.crypto.subtle.importKey(
     "raw",
     raw as unknown as BufferSource,

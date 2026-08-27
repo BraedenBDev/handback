@@ -16,19 +16,22 @@
     "test:all": "vitest run && playwright test"
   },
   "dependencies": {
-    "ajv": "^8.17.1",
     "express": "^5.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
     "@types/express": "^5.0.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@types/supertest": "^6.0.2",
     "@vitejs/plugin-react": "^5.0.0",
     "concurrently": "^9.1.0",
+    "jsdom": "^30.0.1",
     "supertest": "^7.1.0",
     "typescript": "^5.7.0",
     "vite": "^7.0.0",
