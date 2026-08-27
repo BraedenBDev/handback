@@ -62,8 +62,14 @@ For development with hot reload:
 
 ```bash
 npm run dev        # client on :5173, API on :8787
-npm test           # 21 tests
+npm run test:all   # 142 unit + 30 end-to-end
 ```
+
+The suite is the audit. It includes axe against both themes with zero
+violations, a contrast guard that parses `src/style.css` so tokens cannot drift
+below 4.5:1, XSS-as-text assertions on agent-supplied content, hostile-input
+coverage of `shared/validate.ts` (which sits on the trust boundary), and a
+reduced-motion check that asserts zero animations rather than shorter ones.
 
 ### Browser setup
 
@@ -82,6 +88,22 @@ const result = JSON.parse(await document.modelContext.executeTool(tool, JSON.str
 
 `ModelContext` exposes `registerTool`, `getTools`, `executeTool` and `ontoolchange`. Treat all of this as unstable — WebMCP is a Draft Community Group Report, not a standard.
 
+## Design
+
+The handoff's own words are set in a serif because they are prose a person wrote
+and another must read. The machinery around them (labels, versions, keys, seals)
+is mono because it is apparatus. You can tell at a glance which is which.
+
+Amber is the accent because it means *awaiting you*. The human approval gate is
+the product, so the product's colour is the colour of something that has stopped
+and is waiting for a person.
+
+Every version carries a **seal**: the first eight characters of a SHA-256 over
+its state, bound to its version number and its parent's hash. A document edited
+outside the approval path no longer matches its seal and the page says so. It is
+not a signature and proves nothing about authorship, only internal consistency,
+and the copy is careful not to imply more.
+
 ## Security posture, stated honestly
 
 - **AES-256-GCM in the browser.** The key is generated at creation, lives in the URL fragment, and is reused for every later version. The fragment is never sent in an HTTP request.
@@ -89,12 +111,15 @@ const result = JSON.parse(await document.modelContext.executeTool(tool, JSON.str
 - **Anyone holding the whole link can read the handoff.** It is a bearer capability, like a password in a URL. This is a deliberate trade for "no account required", not an oversight.
 - **This is not zero-knowledge.** The server delivers the JavaScript that does the encrypting. A malicious or compromised server could serve code that exfiltrates the key. Hosting metadata — object size, timing, IP — is also visible.
 - **Encryption is not protection from prompt injection.** A handoff carries text written by other people's agents. `read_handoff` marks it untrusted, the UI badges it, and nothing in it is ever treated as an instruction.
+- **The seal is a consistency check, not a signature.** Anyone holding the key can recompute a valid one. It detects accidental or careless edits outside the approval path; it does not prove who made a change.
 - **Contributions are additive.** There is no delete operation, because a reviewer is far likelier to notice added text than quietly removed text.
 
 ## Layout
 
 ```
-shared/schema.ts     JSON Schema — one source of truth for WebMCP and validation
+shared/schema.ts     JSON Schema, one source of truth for WebMCP and validation
+shared/validate.ts   The subset validator that walks it (replaced Ajv)
+src/hash.ts          Content seals and the parent chain
 src/crypto.ts        AES-256-GCM, one key per handoff, reused across versions
 src/webmcp.ts        The four tool registrations
 src/contribution.ts  Pure apply-a-contribution logic
@@ -112,7 +137,7 @@ docs/                Product brief, spec, prior art, naming, WebMCP research
   guards against a regression.
 - Buy a real domain. `handback.link` was RDAP-available when checked on 08-27.
 - An MCP adapter for agents that are not in a browser. Today a CLI agent has to be handed the fragment key and write its own decrypt, which is exactly the "recipient must understand cryptography" failure `docs/PRIOR-ART-AND-NOGO.md` rules out.
-- Import a portable file back into a fresh instance (export works; import does not yet).
+
 - Revocation and expiry.
 
 ## License
