@@ -1,4 +1,13 @@
-import * as THREE from "three";
+import {
+  AdditiveBlending,
+  Color,
+  Mesh,
+  OrthographicCamera,
+  PlaneGeometry,
+  Scene,
+  ShaderMaterial,
+  WebGLRenderer,
+} from "three";
 
 const VERTEX_SHADER = `
   varying vec2 vUv;
@@ -46,7 +55,7 @@ export function shouldSkipFlash(): boolean {
 export function playConnectFlash(el: HTMLElement, colorHex: string): Promise<void> {
   return new Promise((resolve) => {
     const size = Math.max(el.clientWidth, el.clientHeight, 72);
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    const renderer = new WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(size, size, false);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.domElement.style.cssText =
@@ -54,21 +63,21 @@ export function playConnectFlash(el: HTMLElement, colorHex: string): Promise<voi
     el.style.position = el.style.position || "relative";
     el.appendChild(renderer.domElement);
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, 0, 1);
+    const scene = new Scene();
+    const camera = new OrthographicCamera(-0.5, 0.5, 0.5, -0.5, 0, 1);
 
-    const material = new THREE.ShaderMaterial({
+    const material = new ShaderMaterial({
       uniforms: {
         uProgress: { value: 0 },
-        uColor: { value: new THREE.Color(colorHex) },
+        uColor: { value: new Color(colorHex) },
       },
       vertexShader: VERTEX_SHADER,
       fragmentShader: FRAGMENT_SHADER,
       transparent: true,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false,
     });
-    scene.add(new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material));
+    scene.add(new Mesh(new PlaneGeometry(1, 1), material));
 
     let start: number | null = null;
     let frame: number;
