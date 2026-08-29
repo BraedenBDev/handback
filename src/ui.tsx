@@ -112,13 +112,15 @@ export function Masthead({ children, connect = false }: { children?: React.React
   const markSlotRef = useConnectSequence(connect);
   return (
     <header className="masthead">
-      <span className="mark-slot" ref={markSlotRef}>
-        <UsbMark />
-      </span>
-      <h1 className="wordmark">
-        Handback
-        <span className="wordmark-sub">Hand off the work. Get it back intact.</span>
-      </h1>
+      <div className="masthead-title">
+        <span className="mark-slot" ref={markSlotRef}>
+          <UsbMark />
+        </span>
+        <h1 className="wordmark">
+          Handback
+          <span className="wordmark-sub">Hand off the work. Get it back intact.</span>
+        </h1>
+      </div>
       <div className="masthead-meta">
         {children}
         <a className="source-link" href={REPOSITORY_URL} target="_blank" rel="noopener noreferrer">
