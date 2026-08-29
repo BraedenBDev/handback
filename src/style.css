@@ -128,7 +128,8 @@ main { max-width: 56rem; margin: 0 auto; padding: 0 1.5rem 6rem; }
 }
 
 .mark { color: var(--ink); flex: none; display: block; }
-.mark-slot { display: inline-flex; align-items: center; margin-right: 0.55rem; }
+.mark-slot { display: inline-flex; align-items: center; margin-right: 0.55rem; transition: transform var(--arrive), opacity var(--arrive); }
+.mark-slot-arriving { animation: mark-arrive var(--arrive) both; }
 .watermark { position: absolute; color: var(--rule-strong); opacity: 0.5; pointer-events: none; z-index: 0; }
 
 .wordmark {
@@ -500,6 +501,10 @@ code {
   }
   @keyframes stamp {
     from { opacity: 0; transform: scale(1.08); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes mark-arrive {
+    from { opacity: 0; transform: translateY(-6px) scale(0.9); }
     to   { opacity: 1; transform: none; }
   }
 

@@ -81,8 +81,35 @@ export function UsbMark({ size = 18 }: { size?: number }) {
   );
 }
 
-export function Masthead({ children }: { children?: React.ReactNode }) {
-  const markSlotRef = useRef<HTMLSpanElement>(null);
+/** Fires the connect flash into the returned slot ref, once ever per mount. */
+export function useConnectSequence(active: boolean) {
+  const slotRef = useRef<HTMLSpanElement>(null);
+  const hasConnectedRef = useRef(false);
+
+  useEffect(() => {
+    if (!active || hasConnectedRef.current || !slotRef.current) return;
+    hasConnectedRef.current = true;
+    const el = slotRef.current;
+    el.classList.add("mark-slot-arriving");
+    const finish = () => el.classList.remove("mark-slot-arriving");
+
+    (async () => {
+      const { shouldSkipFlash, playConnectFlash } = await import("./connect-flash.ts");
+      if (shouldSkipFlash()) {
+        finish();
+        return;
+      }
+      const sealColor = getComputedStyle(document.documentElement).getPropertyValue("--seal").trim() || "#2C5647";
+      await playConnectFlash(el, sealColor);
+      finish();
+    })();
+  }, [active]);
+
+  return slotRef;
+}
+
+export function Masthead({ children, connect = false }: { children?: React.ReactNode; connect?: boolean }) {
+  const markSlotRef = useConnectSequence(connect);
   return (
     <header className="masthead">
       <span className="mark-slot" ref={markSlotRef}>
