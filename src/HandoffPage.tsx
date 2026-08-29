@@ -200,7 +200,7 @@ export function HandoffPage({ id }: { id: string }) {
 
   return (
     <main>
-      <Masthead>
+      <Masthead connect>
         {expiresAt ? (
           <span className="expiry" title={`Deleted ${new Date(expiresAt).toLocaleString()} unless it changes again`}>
             expires {describeExpiry(expiresAt)}
