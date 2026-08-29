@@ -128,36 +128,59 @@ export function Hero({ onExit }: { onExit: () => void }) {
         <div className="window-orbit">
           <div className="window-tilt" ref={tiltRef}>
             <div className="window-object">
-              <div className="browser-edge" />
-              <div className="browser-card">
-                <div className="browser-chrome">
-                  <span className="browser-dot" />
-                  <span className="browser-dot" />
-                  <span className="browser-dot" />
-                  <span className="browser-url">{current.url}</span>
-                </div>
-                <div className="browser-screen">
-                  {PROVIDERS.map((provider, i) => (
-                    <div className={`provider-slide${i === active ? " active" : ""}`} key={provider.name}>
-                      <div className="provider-name">{provider.name}</div>
-                    </div>
-                  ))}
+              <div className="browser-stack">
+                <div className="browser-edge" />
+                <div className="browser-card">
+                  <div className="browser-chrome">
+                    <span className="browser-dot" />
+                    <span className="browser-dot" />
+                    <span className="browser-dot" />
+                    <span className="browser-url">{current.url}</span>
+                  </div>
+                  <div className="browser-screen">
+                    {PROVIDERS.map((provider, i) => (
+                      <div className={`provider-slide${i === active ? " active" : ""}`} key={provider.name}>
+                        <div className="chat-stack">
+                          <div className="chat-tag">{provider.name}</div>
+                          <div className="chat-bubble agent">
+                            <span />
+                            <span />
+                          </div>
+                          <div className="chat-bubble user">
+                            <span />
+                          </div>
+                          <div className="chat-bubble agent accent">
+                            <span />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div className={`usb-dock${swapping ? " swapping" : ""}`} aria-hidden="true">
-                <div className="usb-face u-back" />
-                <div className="usb-face u-right" />
-                <div className="usb-face u-left" />
-                <div className="usb-face u-bottom" />
-                <div className="usb-face u-top" />
-                <div className="usb-face u-front" />
-                <div className="usb-face u-c-back" />
-                <div className="usb-face u-c-right" />
-                <div className="usb-face u-c-left" />
-                <div className="usb-face u-c-bottom" />
-                <div className="usb-face u-c-top" />
-                <div className="usb-face u-c-front" />
+              <div className="usb-slot">
+                <div className={`usb-dock${swapping ? " swapping" : ""}`} aria-hidden="true">
+                  <div className="usb-face u-back" />
+                  <div className="usb-face u-right" />
+                  <div className="usb-face u-left" />
+                  <div className="usb-face u-bottom" />
+                  <div className="usb-face u-top" />
+                  <div className="usb-face u-front" />
+                  <div className="usb-face u-c-back" />
+                  <div className="usb-face u-c-right" />
+                  <div className="usb-face u-c-left" />
+                  <div className="usb-face u-c-bottom" />
+                  <div className="usb-face u-c-top" />
+                  <div className="usb-face u-c-front" />
+                  <div className="usb-loop" />
+                  <div className="usb-label">
+                    AES · 256
+                    <br />
+                    local key
+                  </div>
+                  <div className="usb-led" />
+                </div>
               </div>
             </div>
           </div>
