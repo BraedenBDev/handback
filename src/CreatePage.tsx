@@ -8,6 +8,7 @@ import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./w
 import { DEFAULT_RETENTION_DAYS, RETENTION_CHOICES, describeExpiry } from "../shared/expiry.ts";
 import { readAutoApprove } from "./auto-approve.ts";
 import { ApprovalMode, ErrorNote, Field, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
+import { Hero } from "./Hero.tsx";
 
 export function CreatePage() {
   const [draft, setDraft] = useState<HandoffState | null>(null);
@@ -18,6 +19,8 @@ export function CreatePage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [webMcp, setWebMcp] = useState(isWebMcpAvailable);
+  const [heroExited, setHeroExited] = useState(false);
+  const showHero = !draft && !created;
 
   // The tools read live state through a ref so registration happens once per
   // document (re-registering a name throws) while still seeing current values.
@@ -114,7 +117,7 @@ export function CreatePage() {
   if (created) {
     return (
       <main>
-        <Masthead>
+        <Masthead connect={heroExited || created !== null}>
           <Seal version={created.version} hash={created.hash} />
         </Masthead>
         <div className="reveal">
@@ -166,7 +169,8 @@ export function CreatePage() {
 
   return (
     <main>
-      <Masthead />
+      {showHero ? <Hero onExit={() => setHeroExited(true)} /> : null}
+      <Masthead connect={heroExited || created !== null} />
       <ToolStatus available={webMcp} />
       <ApprovalMode />
       <ErrorNote error={error} />

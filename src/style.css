@@ -487,6 +487,52 @@ code {
 
 .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
+/* --- the hero USB — CSS 3D face system, ported verbatim from
+   prototype/ui-design.html. Body 150x220x44, connector 62x44x18. This is
+   the one place the object performs (idle drift + pointer tilt); everywhere
+   else it is the flat .mark. ------------------------------------------- */
+
+.usb-perspective { perspective: 1300px; width: 220px; height: 300px; margin: 0 auto; transition: transform 620ms cubic-bezier(0.23, 1, 0.32, 1); }
+.usb-orbit { width: 100%; height: 100%; transform-style: preserve-3d; animation: usb-drift 8s ease-in-out infinite; }
+.usb-tilt { width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 520ms cubic-bezier(0.23, 1, 0.32, 1); }
+.usb-object { position: absolute; left: 50%; top: 58%; width: 0; height: 0; transform-style: preserve-3d; }
+.face { position: absolute; border: 1.5px solid var(--ink); box-sizing: border-box; }
+.f-front  { width: 150px; height: 220px; margin: -110px 0 0 -75px; transform: translateZ(22px); background: var(--paper-raised); border-radius: 16px 16px 5px 5px; }
+.f-back   { width: 150px; height: 220px; margin: -110px 0 0 -75px; transform: translateZ(-22px) rotateY(180deg); background: var(--paper-sunken); border-radius: 16px 16px 5px 5px; }
+.f-right  { width: 44px;  height: 220px; margin: -110px 0 0 -22px; transform: rotateY(90deg) translateZ(75px); background: var(--paper-sunken); }
+.f-left   { width: 44px;  height: 220px; margin: -110px 0 0 -22px; transform: rotateY(-90deg) translateZ(75px); background: var(--paper-sunken); }
+.f-top    { width: 150px; height: 44px;  margin: -22px 0 0 -75px; transform: rotateX(90deg) translateZ(110px); background: var(--rule-strong); border-radius: 16px 16px 0 0; }
+.f-bottom { width: 150px; height: 44px;  margin: -22px 0 0 -75px; transform: rotateX(-90deg) translateZ(110px); background: var(--rule-strong); border-radius: 0 0 5px 5px; }
+.c-front  { width: 62px; height: 44px; margin: -110px 0 0 -31px; transform: translateY(-132px) translateZ(9px); background: linear-gradient(180deg, var(--rule-strong) 0 55%, var(--ink-muted) 55% 100%); }
+.c-back   { width: 62px; height: 44px; margin: -110px 0 0 -31px; transform: translateY(-132px) translateZ(-9px) rotateY(180deg); background: var(--ink-muted); }
+.c-right  { width: 18px; height: 44px; margin: -110px 0 0 -9px;  transform: translateY(-132px) rotateY(90deg) translateZ(31px); background: var(--ink-muted); }
+.c-left   { width: 18px; height: 44px; margin: -110px 0 0 -9px;  transform: translateY(-132px) rotateY(-90deg) translateZ(31px); background: var(--ink-muted); }
+.c-top    { width: 62px; height: 18px; margin: -9px 0 0 -31px;   transform: translateY(-132px) rotateX(90deg) translateZ(22px); background: var(--rule-strong); }
+.c-bottom { width: 62px; height: 18px; margin: -9px 0 0 -31px;   transform: translateY(-132px) rotateX(-90deg) translateZ(22px); background: var(--ink-muted); }
+
+.usb-loop { position: absolute; left: 47px; top: 176px; width: 20px; height: 20px; border: 2px solid var(--ink); border-radius: 50%; background: transparent; transform: translateZ(23px); }
+.usb-label { position: absolute; left: 22px; top: 96px; width: 106px; padding: 0.3rem 0.4rem; border: 1px solid var(--rule-strong); border-radius: 3px; transform: translateZ(23px); font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.05em; color: var(--ink-muted); text-align: center; line-height: 1.5; }
+.usb-led {
+  position: absolute; left: 68px; top: 62px; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--amber); box-shadow: 0 0 0 2px var(--amber-surface), 0 0 10px 2px var(--amber-edge);
+  transform: translateZ(23px); animation: led-idle 2.6s ease-in-out infinite;
+}
+@keyframes led-idle { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+.usb-ground { width: 150px; height: 22px; margin: -0.6rem auto 0; background: radial-gradient(ellipse at center, var(--ink) 0%, transparent 72%); opacity: 0.1; animation: usb-ground-drift 8s ease-in-out infinite; }
+@keyframes usb-drift { 0%, 100% { transform: rotateY(-7deg) rotateX(2deg) translateY(0); } 50% { transform: rotateY(7deg) rotateX(-1deg) translateY(-7px); } }
+@keyframes usb-ground-drift { 0%, 100% { transform: scaleX(1); opacity: 0.1; } 50% { transform: scaleX(0.88); opacity: 0.07; } }
+
+.hero-stage { min-height: 26rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 3rem 1.5rem 2rem; position: relative; }
+.hero-stage h2 { font-size: clamp(1.3rem, 4vw, 1.7rem); font-weight: 600; margin: 0 0 0.5rem; text-wrap: balance; }
+.hero-stage .sub { color: var(--ink-muted); font-size: 0.95rem; margin: 0 0 2.2rem; max-width: 26rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .usb-orbit { animation: none; }
+  .usb-led, .usb-ground { animation: none; }
+  .usb-tilt { transition-duration: 1ms !important; }
+}
+
 /* --- motion --------------------------------------------------------------
    Everything lives inside no-preference, so reduced-motion is the default-safe
    path rather than something bolted on afterwards. Each animation answers
