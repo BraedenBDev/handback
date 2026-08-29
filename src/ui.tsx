@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { HandoffDocument, HandoffState } from "../shared/schema.ts";
 import { sealOf, type SealVerdict } from "./hash.ts";
 import { readAutoApprove, writeAutoApprove } from "./auto-approve.ts";
@@ -72,9 +72,22 @@ function SourceMark() {
   );
 }
 
+/** The shared flat mark, recurring in both pages' masthead. */
+export function UsbMark({ size = 18 }: { size?: number }) {
+  return (
+    <svg className="mark" width={size} height={(size * 4) / 3} aria-hidden="true">
+      <use href="#usb-mark" />
+    </svg>
+  );
+}
+
 export function Masthead({ children }: { children?: React.ReactNode }) {
+  const markSlotRef = useRef<HTMLSpanElement>(null);
   return (
     <header className="masthead">
+      <span className="mark-slot" ref={markSlotRef}>
+        <UsbMark />
+      </span>
       <h1 className="wordmark">
         Handback
         <span className="wordmark-sub">Hand off the work. Get it back intact.</span>
