@@ -24,9 +24,16 @@ async function installWebMcp(page: Page) {
 }
 
 /** Contrast is a property of the settled page; measuring mid-fade measures the
- *  animation, not the design. A separate test covers the settle time itself. */
+ *  animation, not the design. A separate test covers the settle time itself.
+ *  Perpetual decorative loops (the hero's idle drift, its LED) are excluded —
+ *  they run by design and never reach "finished". */
 async function settle(page: Page) {
-  await page.waitForFunction(() => document.getAnimations().every((a) => a.playState === "finished"));
+  await page.waitForFunction(() =>
+    document.getAnimations().every((a) => {
+      const iterations = a.effect?.getComputedTiming().iterations;
+      return iterations === Infinity || a.playState === "finished";
+    }),
+  );
 }
 
 const scan = async (page: Page) => {
@@ -150,7 +157,14 @@ test("the page finishes animating quickly enough that transient contrast is not 
   await page.goto("/");
   const settleMs = await page.evaluate(async () => {
     const start = performance.now();
-    await Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {})));
+    // Perpetual decorative loops (hero idle drift, its LED) never finish by
+    // design and are excluded — this measures one-shot entrance motion only.
+    await Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .map((a) => a.finished.catch(() => {})),
+    );
     return performance.now() - start;
   });
   expect(settleMs).toBeLessThan(700);

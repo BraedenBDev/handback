@@ -76,7 +76,7 @@ export function playConnectFlash(el: HTMLElement, colorHex: string): Promise<voi
     function tick(now: number) {
       if (start === null) start = now;
       const progress = Math.min((now - start) / BURST_MS, 1);
-      material.uniforms.uProgress.value = progress;
+      material.uniforms.uProgress!.value = progress;
       renderer.render(scene, camera);
       if (progress < 1) {
         frame = requestAnimationFrame(tick);
