@@ -141,7 +141,6 @@ main { max-width: 56rem; margin: 0 auto; padding: 0 1.5rem 6rem; }
 .masthead-title { display: flex; align-items: center; gap: 0.55rem; }
 .mark-slot { display: inline-flex; align-items: center; transition: transform var(--arrive), opacity var(--arrive); }
 .mark-slot-arriving { animation: mark-arrive var(--arrive) both; }
-.watermark { position: absolute; color: var(--rule-strong); opacity: 0.5; pointer-events: none; z-index: 0; }
 
 .wordmark {
   font-family: var(--serif);
@@ -590,6 +589,15 @@ code {
 .chat-bubble.user span { width: 6.5rem; background: var(--ink-muted); opacity: 0.55; }
 .chat-bubble.accent span { width: 5rem; background: var(--amber-edge); }
 
+/* the Handback beat — the browser navigates to Handback itself between
+   each pair of providers, so the product is a visible participant in the
+   story instead of an implied gap between two AI apps. */
+.browser-url.is-handback { color: var(--ink); font-weight: 500; border-color: var(--seal); }
+.handback-card { display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; }
+.handback-seal { position: relative; width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--seal-surface); border: 1.5px solid var(--seal); flex: none; }
+.handback-seal::after { content: ""; position: absolute; inset: 0; margin: auto; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--seal); }
+.handback-line { margin: 0; font-family: var(--mono); font-size: 0.85rem; color: var(--ink-muted); letter-spacing: 0.02em; max-width: 16rem; }
+
 /* --- the drive — the real motif, port and all. Sits beside the window
    now, not tucked underneath it; the handoff reads through the chat
    content flying into and out of it, not through a literal plug into the
@@ -626,7 +634,11 @@ code {
   position: absolute; left: 68px; top: 62px; width: 11px; height: 11px; border-radius: 50%;
   background: var(--amber); box-shadow: 0 0 0 2px var(--amber-surface), 0 0 12px 2px var(--amber-edge);
   transform: translateZ(26px); animation: led-idle 2.6s ease-in-out infinite;
+  transition: background 200ms ease, box-shadow 200ms ease;
 }
+/* solid, not pulsing — same "committed" language the rest of the app
+   already uses for --seal, now reused rather than invented fresh. */
+.usb-led.sealed { animation: none; opacity: 1; background: var(--seal); box-shadow: 0 0 0 2px var(--seal-surface), 0 0 12px 2px var(--seal); }
 @keyframes led-idle { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
 .window-ground { width: clamp(500px, 40vw, 900px); height: 44px; margin: 0.6rem auto 0; background: radial-gradient(ellipse at center, var(--ink) 0%, transparent 72%); opacity: 0.12; animation: window-ground-drift 10s ease-in-out infinite; position: relative; z-index: 1; }

@@ -1,10 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 
-/** The three agents the README itself names as unable to open each other's work. */
-const PROVIDERS = [
-  { name: "Claude", url: "claude.ai/chat/1f3c9a…" },
-  { name: "ChatGPT", url: "chatgpt.com/c/8b21e0…" },
-  { name: "Gemini", url: "gemini.google.com/app/4d7f…" },
+type Slide = { kind: "provider"; name: string; url: string } | { kind: "handback" };
+
+const HANDBACK_URL = "handback.link/h/aB3xY9Qz…#••••••";
+
+/**
+ * The three agents the README names as unable to open each other's work,
+ * each followed by a beat where the browser shows Handback itself. Without
+ * that beat, the story was "one browser switching between three AI apps" —
+ * the actual product (a private link, held between them) never appeared.
+ */
+const SEQUENCE: Slide[] = [
+  { kind: "provider", name: "Claude", url: "claude.ai/chat/1f3c9a…" },
+  { kind: "handback" },
+  { kind: "provider", name: "ChatGPT", url: "chatgpt.com/c/8b21e0…" },
+  { kind: "handback" },
+  { kind: "provider", name: "Gemini", url: "gemini.google.com/app/4d7f…" },
+  { kind: "handback" },
 ];
 
 const SWAP_INTERVAL_MS = 2800;
@@ -16,10 +28,12 @@ const UNPLUG_MS = 200;
  * React state — this runs on every scroll tick, and re-rendering the tree
  * for that would be wasteful and, worse, laggy.
  *
- * The provider carousel is driven by the drive, not a generic crossfade:
- * on each tick it unplugs (screen starts leaving), then the active
- * provider advances and it plugs back in (new screen arrives) — the
- * transition IS the handoff, not decoration next to it.
+ * The carousel is driven by the drive, not a generic crossfade: on each
+ * tick it unplugs (screen starts leaving), then the sequence advances and
+ * it plugs back in (new screen arrives) — the transition IS the handoff,
+ * not decoration next to it. The drive's LED tracks the same "awaiting /
+ * committed" language the rest of the app already uses: pulsing amber
+ * while a chat is live, solid seal-green while Handback is holding it.
  */
 export function Hero({ onExit }: { onExit: () => void }) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -29,7 +43,8 @@ export function Hero({ onExit }: { onExit: () => void }) {
   const frame = useRef<number | null>(null);
   const [active, setActive] = useState(0);
   const [swapping, setSwapping] = useState(false);
-  const current = PROVIDERS[active % PROVIDERS.length]!;
+  const current = SEQUENCE[active % SEQUENCE.length]!;
+  const currentUrl = current.kind === "provider" ? current.url : HANDBACK_URL;
 
   useEffect(() => {
     const node = stageRef.current;
@@ -48,7 +63,7 @@ export function Hero({ onExit }: { onExit: () => void }) {
     const tick = window.setInterval(() => {
       setSwapping(true);
       window.setTimeout(() => {
-        setActive((n) => (n + 1) % PROVIDERS.length);
+        setActive((n) => (n + 1) % SEQUENCE.length);
         setSwapping(false);
       }, UNPLUG_MS);
     }, SWAP_INTERVAL_MS);
@@ -135,23 +150,34 @@ export function Hero({ onExit }: { onExit: () => void }) {
                     <span className="browser-dot" />
                     <span className="browser-dot" />
                     <span className="browser-dot" />
-                    <span className="browser-url">{current.url}</span>
+                    <span className={`browser-url${current.kind === "handback" ? " is-handback" : ""}`}>
+                      {currentUrl}
+                    </span>
                   </div>
                   <div className="browser-screen">
-                    {PROVIDERS.map((provider, i) => (
-                      <div className={`provider-slide${i === active ? " active" : ""}`} key={provider.name}>
+                    {SEQUENCE.map((slide, i) => (
+                      <div className={`provider-slide${i === active ? " active" : ""}`} key={i}>
                         <div className="chat-stack">
-                          <div className="chat-tag">{provider.name}</div>
-                          <div className="chat-bubble agent">
-                            <span />
-                            <span />
-                          </div>
-                          <div className="chat-bubble user">
-                            <span />
-                          </div>
-                          <div className="chat-bubble agent accent">
-                            <span />
-                          </div>
+                          {slide.kind === "provider" ? (
+                            <>
+                              <div className="chat-tag">{slide.name}</div>
+                              <div className="chat-bubble agent">
+                                <span />
+                                <span />
+                              </div>
+                              <div className="chat-bubble user">
+                                <span />
+                              </div>
+                              <div className="chat-bubble agent accent">
+                                <span />
+                              </div>
+                            </>
+                          ) : (
+                            <div className="handback-card">
+                              <span className="handback-seal" aria-hidden="true" />
+                              <p className="handback-line">One private link. Nothing indexed.</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -179,7 +205,7 @@ export function Hero({ onExit }: { onExit: () => void }) {
                     <br />
                     local key
                   </div>
-                  <div className="usb-led" />
+                  <div className={`usb-led${current.kind === "handback" ? " sealed" : ""}`} />
                 </div>
               </div>
             </div>
