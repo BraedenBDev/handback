@@ -2,18 +2,18 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Masthead, UsbMark } from "./ui.tsx";
+import { Masthead, BrowserMark } from "./ui.tsx";
 
 vi.mock("./connect-flash.ts", () => ({
   shouldSkipFlash: () => true, // skip the WebGL path entirely in jsdom
   playConnectFlash: vi.fn(),
 }));
 
-describe("UsbMark", () => {
+describe("BrowserMark", () => {
   it("renders the shared usb-mark symbol", () => {
-    render(<UsbMark />);
+    render(<BrowserMark />);
     const use = document.querySelector("svg.mark use");
-    expect(use?.getAttribute("href")).toBe("#usb-mark");
+    expect(use?.getAttribute("href")).toBe("#browser-mark");
   });
 });
 

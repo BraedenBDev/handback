@@ -209,6 +209,7 @@ export function HandoffPage({ id }: { id: string }) {
         <Seal version={doc.version} hash={doc.contentHash} verdict={seal} />
       </Masthead>
 
+      <div className="content-card">
       <ToolStatus available={webMcp} />
       <ApprovalMode />
       <ErrorNote error={error} />
@@ -262,6 +263,7 @@ export function HandoffPage({ id }: { id: string }) {
           <button onClick={() => downloadFile(`handback-${id}.md`, toMarkdown(doc), "text/markdown")}>Markdown</button>
         </div>
       </Field>
+      </div>
     </main>
   );
 }

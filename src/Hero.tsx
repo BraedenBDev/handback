@@ -1,10 +1,19 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+
+/** The three agents the README itself names as unable to open each other's work. */
+const PROVIDERS = [
+  { name: "Claude", url: "claude.ai/chat/1f3c9a…" },
+  { name: "ChatGPT", url: "chatgpt.com/c/8b21e0…" },
+  { name: "Gemini", url: "gemini.google.com/app/4d7f…" },
+];
 
 /**
  * The landing hero. Scroll and pointer position are combined into one
  * transform, applied via rAF-throttled direct style writes rather than
  * React state — this runs on every scroll tick, and re-rendering the tree
- * for that would be wasteful and, worse, laggy.
+ * for that would be wasteful and, worse, laggy. The provider carousel is
+ * the one thing that does go through React state, since it only changes a
+ * few times a minute.
  */
 export function Hero({ onExit }: { onExit: () => void }) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -12,6 +21,8 @@ export function Hero({ onExit }: { onExit: () => void }) {
   const copyRef = useRef<HTMLDivElement>(null);
   const pointer = useRef({ x: 0, y: 0 });
   const frame = useRef<number | null>(null);
+  const [active, setActive] = useState(0);
+  const current = PROVIDERS[active % PROVIDERS.length]!;
 
   useEffect(() => {
     const node = stageRef.current;
@@ -27,6 +38,11 @@ export function Hero({ onExit }: { onExit: () => void }) {
   }, [onExit]);
 
   useEffect(() => {
+    const id = window.setInterval(() => setActive((n) => (n + 1) % PROVIDERS.length), 2800);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
 
     function apply() {
@@ -37,8 +53,8 @@ export function Hero({ onExit }: { onExit: () => void }) {
       const progress = Math.min(1, Math.max(0, -rect.top / rect.height));
 
       const { x, y } = pointer.current;
-      const rotY = x * 22 + progress * 28;
-      const rotX = y * -14;
+      const rotY = x * 16 + progress * 22;
+      const rotX = y * -10;
       const rise = progress * -90;
       const scale = 1 - progress * 0.2;
       tiltRef.current.style.transform = `translateY(${rise}px) scale(${scale}) rotateY(${rotY}deg) rotateX(${rotX}deg)`;
@@ -95,34 +111,36 @@ export function Hero({ onExit }: { onExit: () => void }) {
         </p>
       </div>
 
-      <div className="usb-perspective">
-        <div className="usb-orbit">
-          <div className="usb-tilt" ref={tiltRef}>
-            <div className="usb-object">
-              <div className="face f-back" />
-              <div className="face f-right" />
-              <div className="face f-left" />
-              <div className="face f-bottom" />
-              <div className="face f-top" />
-              <div className="face f-front" />
-              <div className="face c-back" />
-              <div className="face c-right" />
-              <div className="face c-left" />
-              <div className="face c-bottom" />
-              <div className="face c-top" />
-              <div className="face c-front" />
-              <div className="usb-loop" />
-              <div className="usb-label">
-                AES · 256
-                <br />
-                local key
+      <div className="window-perspective">
+        <div className="window-orbit">
+          <div className="window-tilt" ref={tiltRef}>
+            <div className="window-object">
+              <div className="browser-edge" />
+              <div className="browser-card">
+                <div className="browser-chrome">
+                  <span className="browser-dot" />
+                  <span className="browser-dot" />
+                  <span className="browser-dot" />
+                  <span className="browser-url">{current.url}</span>
+                </div>
+                <div className="browser-screen">
+                  {PROVIDERS.map((provider, i) => (
+                    <div className={`provider-slide${i === active ? " active" : ""}`} key={provider.name}>
+                      <div className="provider-name">{provider.name}</div>
+                      <div className="provider-lines">
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="usb-led" />
             </div>
           </div>
         </div>
       </div>
-      <div className="usb-ground" />
+      <div className="window-ground" />
     </section>
   );
 }

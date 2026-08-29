@@ -164,6 +164,26 @@ main { max-width: 56rem; margin: 0 auto; padding: 0 1.5rem 6rem; }
 
 .masthead-meta { display: flex; align-items: center; gap: 0.9rem; }
 
+/* --- the content card — everything below the masthead sits on one raised
+   surface instead of loose fields on the page background. Gives the
+   utility content its own weight after the hero, rather than a hard cut
+   from cinematic to bare HTML form. --------------------------------- */
+.content-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  padding: 2.25rem clamp(1.25rem, 4vw, 2.75rem) 2.75rem;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--ink) 6%, transparent),
+    0 24px 40px -28px color-mix(in srgb, var(--ink) 22%, transparent);
+  margin-bottom: 3rem;
+}
+.content-card > *:first-child { margin-top: 0; }
+.content-card > *:last-child { margin-bottom: 0; }
+@media (max-width: 46rem) {
+  .content-card { padding: 1.5rem 1.15rem 2rem; border-radius: var(--radius-inner); }
+}
+
 /* --- the seal ------------------------------------------------------------ */
 /* A version's short content hash. It is the one repeated object in the design,
    and it is real data, not decoration. */
@@ -498,47 +518,69 @@ code {
 
 .file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
-/* --- the hero USB — CSS 3D face system, ported and scaled up from
-   prototype/ui-design.html. Body 260x400x76, connector 110x80x32. This is
-   the one place the object performs (idle drift, pointer tilt, and a
-   continuous scroll-coupled parallax driven from Hero.tsx); everywhere
-   else it is the flat .mark. ------------------------------------------- */
+/* --- the hero object — a floating browser window, not a device. A tall
+   rounded object read as a phone regardless of what it was labeled;
+   landscape + a real chrome bar disambiguates itself by silhouette alone.
+   Tilt (idle drift, pointer, scroll parallax) lives on .window-tilt, same
+   mechanism as before, driven from Hero.tsx. The carousel inside cycles
+   through the providers the README itself names. ------------------------ */
 
-.usb-perspective { perspective: 1900px; width: 260px; height: 560px; margin: 0 auto; }
-.usb-orbit { width: 100%; height: 100%; transform-style: preserve-3d; animation: usb-drift 9s ease-in-out infinite; }
-.usb-tilt { width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 150ms ease-out; }
-.usb-object {
-  position: absolute; left: 50%; top: 57%; width: 0; height: 0; transform-style: preserve-3d;
-  filter:
-    drop-shadow(0 60px 46px color-mix(in srgb, var(--ink) 20%, transparent))
-    drop-shadow(0 20px 16px color-mix(in srgb, var(--ink) 16%, transparent));
+.window-perspective { perspective: 2000px; margin: 0 auto; width: 640px; max-width: 88vw; }
+.window-orbit { transform-style: preserve-3d; animation: window-drift 10s ease-in-out infinite; }
+.window-tilt { transform-style: preserve-3d; transition: transform 150ms ease-out; }
+.window-object { position: relative; width: 640px; max-width: 88vw; margin: 0 auto; transform-style: preserve-3d; }
+.browser-edge {
+  position: absolute; inset: 0; transform: translate(10px, 14px) translateZ(-24px);
+  background: var(--paper-sunken); border: 1.5px solid var(--rule-strong); border-radius: 18px;
 }
-.face { position: absolute; border: 1.5px solid var(--ink); box-sizing: border-box; }
-.f-front  { width: 260px; height: 400px; margin: -200px 0 0 -130px; transform: translateZ(38px); background: linear-gradient(155deg, var(--paper-raised) 0%, var(--paper-sunken) 82%); border-radius: 28px 28px 8px 8px; }
-.f-back   { width: 260px; height: 400px; margin: -200px 0 0 -130px; transform: translateZ(-38px) rotateY(180deg); background: var(--paper-sunken); border-radius: 28px 28px 8px 8px; }
-.f-right  { width: 76px;  height: 400px; margin: -200px 0 0 -38px; transform: rotateY(90deg) translateZ(130px); background: linear-gradient(180deg, var(--rule) 0%, var(--rule-strong) 100%); }
-.f-left   { width: 76px;  height: 400px; margin: -200px 0 0 -38px; transform: rotateY(-90deg) translateZ(130px); background: linear-gradient(180deg, var(--paper-sunken) 0%, var(--rule) 100%); }
-.f-top    { width: 260px; height: 76px;  margin: -38px 0 0 -130px; transform: rotateX(90deg) translateZ(200px); background: linear-gradient(100deg, var(--paper-raised) 0%, var(--rule) 100%); border-radius: 28px 28px 0 0; }
-.f-bottom { width: 260px; height: 76px;  margin: -38px 0 0 -130px; transform: rotateX(-90deg) translateZ(200px); background: var(--rule-strong); border-radius: 0 0 8px 8px; }
-.c-front  { width: 110px; height: 80px; margin: -40px 0 0 -55px; transform: translateY(-240px) translateZ(16px); background: linear-gradient(115deg, var(--rule-strong) 0%, var(--ink-muted) 42%, var(--rule-strong) 58%, var(--ink-muted) 100%); border-radius: 6px 6px 0 0; }
-.c-back   { width: 110px; height: 80px; margin: -40px 0 0 -55px; transform: translateY(-240px) translateZ(-16px) rotateY(180deg); background: var(--ink-muted); border-radius: 6px 6px 0 0; }
-.c-right  { width: 32px;  height: 80px; margin: -40px 0 0 -16px; transform: translateY(-240px) rotateY(90deg) translateZ(55px); background: linear-gradient(180deg, var(--ink-muted), var(--rule-strong)); }
-.c-left   { width: 32px;  height: 80px; margin: -40px 0 0 -16px; transform: translateY(-240px) rotateY(-90deg) translateZ(55px); background: linear-gradient(180deg, var(--rule-strong), var(--ink-muted)); }
-.c-top    { width: 110px; height: 32px; margin: -16px 0 0 -55px; transform: translateY(-240px) rotateX(90deg) translateZ(40px); background: var(--rule-strong); border-radius: 6px 6px 0 0; }
-.c-bottom { width: 110px; height: 32px; margin: -16px 0 0 -55px; transform: translateY(-240px) rotateX(-90deg) translateZ(40px); background: var(--ink-muted); }
-
-.usb-loop { position: absolute; left: -17px; top: 148px; width: 34px; height: 34px; border: 3px solid var(--ink); border-radius: 50%; background: transparent; transform: translateZ(39px); }
-.usb-label { position: absolute; left: -95px; top: -64px; width: 190px; padding: 0.55rem 0.7rem; border: 1px solid var(--rule-strong); border-radius: 4px; transform: translateZ(39px); font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em; color: var(--ink-muted); text-align: center; line-height: 1.6; background: color-mix(in srgb, var(--paper-raised) 70%, transparent); }
-.usb-led {
-  position: absolute; left: 104px; top: 96px; width: 15px; height: 15px; border-radius: 50%;
-  background: var(--amber); box-shadow: 0 0 0 3px var(--amber-surface), 0 0 16px 3px var(--amber-edge);
-  transform: translateZ(39px); animation: led-idle 2.6s ease-in-out infinite;
+.browser-card {
+  position: relative; /* normal flow — gives .window-object its height, so browser-edge's inset:0 has something to match */
+  border-radius: 18px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper-raised);
+  overflow: hidden;
+  transform: translateZ(18px);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent) inset,
+    0 30px 26px -16px color-mix(in srgb, var(--ink) 24%, transparent),
+    0 64px 54px -28px color-mix(in srgb, var(--ink) 18%, transparent);
 }
-@keyframes led-idle { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.browser-chrome {
+  display: flex; align-items: center; gap: 0.7rem;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--rule);
+  background: linear-gradient(180deg, var(--paper-sunken) 0%, var(--rule) 220%);
+}
+.browser-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rule-strong); flex: none; }
+.browser-url {
+  flex: 1; text-align: center;
+  font-family: var(--mono); font-size: 0.8rem; color: var(--ink-muted); letter-spacing: 0.02em;
+  background: var(--paper-raised); border: 1px solid var(--rule); border-radius: 999px;
+  padding: 0.4rem 1rem; transition: opacity 200ms ease;
+}
+.browser-screen { position: relative; height: 21rem; background: var(--paper); }
+.provider-slide {
+  position: absolute; inset: 0; padding: 2.4rem 2.6rem;
+  display: flex; flex-direction: column; justify-content: center; gap: 1.1rem;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity 420ms ease, transform 420ms ease;
+}
+.provider-slide.active { opacity: 1; transform: translateY(0); }
+.provider-name { font-family: var(--serif); font-size: clamp(1.4rem, 2.4vw, 1.9rem); font-weight: 600; }
+.provider-lines { display: flex; flex-direction: column; gap: 0.65rem; }
+.provider-lines span { display: block; height: 0.75rem; border-radius: 4px; background: var(--rule); }
+.provider-lines span:nth-child(1) { width: 84%; }
+.provider-lines span:nth-child(2) { width: 62%; }
+.provider-lines span:nth-child(3) { width: 40%; background: var(--amber-edge); }
 
-.usb-ground { width: 260px; height: 36px; margin: 0.4rem auto 0; background: radial-gradient(ellipse at center, var(--ink) 0%, transparent 72%); opacity: 0.12; animation: usb-ground-drift 9s ease-in-out infinite; position: relative; z-index: 1; }
-@keyframes usb-drift { 0%, 100% { transform: rotateY(-9deg) rotateX(3deg) translateY(0); } 50% { transform: rotateY(9deg) rotateX(-2deg) translateY(-10px); } }
-@keyframes usb-ground-drift { 0%, 100% { transform: scaleX(1); opacity: 0.12; } 50% { transform: scaleX(0.86); opacity: 0.08; } }
+.window-ground { width: 500px; height: 44px; margin: 1.4rem auto 0; background: radial-gradient(ellipse at center, var(--ink) 0%, transparent 72%); opacity: 0.12; animation: window-ground-drift 10s ease-in-out infinite; position: relative; z-index: 1; }
+@keyframes window-drift { 0%, 100% { transform: rotateY(-6deg) rotateX(2deg) translateY(0); } 50% { transform: rotateY(6deg) rotateX(-1deg) translateY(-9px); } }
+@keyframes window-ground-drift { 0%, 100% { transform: scaleX(1); opacity: 0.12; } 50% { transform: scaleX(0.88); opacity: 0.08; } }
+
+@media (max-width: 46rem) {
+  .browser-screen { height: 17rem; }
+  .provider-slide { padding: 1.6rem 1.8rem; }
+}
 
 /* --- the hero itself — full-bleed, breaks out of main's reading column
    so the landing moment isn't boxed into the same measure as the form
@@ -564,16 +606,16 @@ code {
 .hero-copy h2 {
   font-size: clamp(2.75rem, 9vw, 6.75rem);
   font-weight: 600;
-  line-height: 0.97;
+  line-height: 1;
   letter-spacing: -0.03em;
   margin: 0 0 1.1rem;
   text-wrap: balance;
 }
-.hero-copy .sub { color: var(--ink-muted); font-size: clamp(1rem, 1.6vw, 1.25rem); margin: 0 auto; max-width: 30rem; }
+.hero-copy .sub { color: var(--ink-muted); font-size: clamp(1rem, 1.6vw, 1.25rem); margin: 0 auto; max-width: 30rem; text-wrap: balance; }
 
 @media (prefers-reduced-motion: reduce) {
-  .usb-orbit { animation: none; }
-  .usb-led, .usb-ground { animation: none; }
+  .window-orbit, .window-ground { animation: none; }
+  .provider-slide { transition: opacity 200ms ease; transform: none !important; }
 }
 
 /* --- motion --------------------------------------------------------------

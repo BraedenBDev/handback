@@ -120,6 +120,7 @@ export function CreatePage() {
         <Masthead connect={heroExited || created !== null}>
           <Seal version={created.version} hash={created.hash} />
         </Masthead>
+        <div className="content-card">
         <div className="reveal">
           <Field label="Your link" index={0}>
             <p className="caution">
@@ -163,6 +164,7 @@ export function CreatePage() {
             </div>
           </Field>
         </div>
+        </div>
       </main>
     );
   }
@@ -171,6 +173,7 @@ export function CreatePage() {
     <main>
       {showHero ? <Hero onExit={() => setHeroExited(true)} /> : null}
       <Masthead connect={heroExited || created !== null} />
+      <div className="content-card">
       <ToolStatus available={webMcp} />
       <ApprovalMode />
       <ErrorNote error={error} />
@@ -215,6 +218,7 @@ export function CreatePage() {
       ) : (
         <ManualDraftForm onStage={setDraft} onImport={importFile} />
       )}
+      </div>
     </main>
   );
 }

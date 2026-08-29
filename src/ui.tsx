@@ -72,11 +72,11 @@ function SourceMark() {
   );
 }
 
-/** The shared flat mark, recurring in both pages' masthead. */
-export function UsbMark({ size = 18 }: { size?: number }) {
+/** The shared flat mark, recurring in both pages' masthead — same shape as the hero. */
+export function BrowserMark({ size = 18 }: { size?: number }) {
   return (
-    <svg className="mark" width={size} height={(size * 4) / 3} aria-hidden="true">
-      <use href="#usb-mark" />
+    <svg className="mark" width={size} height={(size * 22) / 28} aria-hidden="true">
+      <use href="#browser-mark" />
     </svg>
   );
 }
@@ -114,7 +114,7 @@ export function Masthead({ children, connect = false }: { children?: React.React
     <header className="masthead">
       <div className="masthead-title">
         <span className="mark-slot" ref={markSlotRef}>
-          <UsbMark />
+          <BrowserMark />
         </span>
         <h1 className="wordmark">
           Handback
