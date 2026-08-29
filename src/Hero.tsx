@@ -7,13 +7,19 @@ const PROVIDERS = [
   { name: "Gemini", url: "gemini.google.com/app/4d7f…" },
 ];
 
+const SWAP_INTERVAL_MS = 2800;
+const UNPLUG_MS = 200;
+
 /**
  * The landing hero. Scroll and pointer position are combined into one
  * transform, applied via rAF-throttled direct style writes rather than
  * React state — this runs on every scroll tick, and re-rendering the tree
- * for that would be wasteful and, worse, laggy. The provider carousel is
- * the one thing that does go through React state, since it only changes a
- * few times a minute.
+ * for that would be wasteful and, worse, laggy.
+ *
+ * The provider carousel is driven by the drive, not a generic crossfade:
+ * on each tick it unplugs (screen starts leaving), then the active
+ * provider advances and it plugs back in (new screen arrives) — the
+ * transition IS the handoff, not decoration next to it.
  */
 export function Hero({ onExit }: { onExit: () => void }) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -22,6 +28,7 @@ export function Hero({ onExit }: { onExit: () => void }) {
   const pointer = useRef({ x: 0, y: 0 });
   const frame = useRef<number | null>(null);
   const [active, setActive] = useState(0);
+  const [swapping, setSwapping] = useState(false);
   const current = PROVIDERS[active % PROVIDERS.length]!;
 
   useEffect(() => {
@@ -38,8 +45,14 @@ export function Hero({ onExit }: { onExit: () => void }) {
   }, [onExit]);
 
   useEffect(() => {
-    const id = window.setInterval(() => setActive((n) => (n + 1) % PROVIDERS.length), 2800);
-    return () => window.clearInterval(id);
+    const tick = window.setInterval(() => {
+      setSwapping(true);
+      window.setTimeout(() => {
+        setActive((n) => (n + 1) % PROVIDERS.length);
+        setSwapping(false);
+      }, UNPLUG_MS);
+    }, SWAP_INTERVAL_MS);
+    return () => window.clearInterval(tick);
   }, []);
 
   useEffect(() => {
@@ -53,8 +66,8 @@ export function Hero({ onExit }: { onExit: () => void }) {
       const progress = Math.min(1, Math.max(0, -rect.top / rect.height));
 
       const { x, y } = pointer.current;
-      const rotY = x * 16 + progress * 22;
-      const rotX = y * -10;
+      const rotY = x * 14 + progress * 20;
+      const rotX = y * -9;
       const rise = progress * -90;
       const scale = 1 - progress * 0.2;
       tiltRef.current.style.transform = `translateY(${rise}px) scale(${scale}) rotateY(${rotY}deg) rotateX(${rotX}deg)`;
@@ -127,14 +140,24 @@ export function Hero({ onExit }: { onExit: () => void }) {
                   {PROVIDERS.map((provider, i) => (
                     <div className={`provider-slide${i === active ? " active" : ""}`} key={provider.name}>
                       <div className="provider-name">{provider.name}</div>
-                      <div className="provider-lines">
-                        <span />
-                        <span />
-                        <span />
-                      </div>
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className={`usb-dock${swapping ? " swapping" : ""}`} aria-hidden="true">
+                <div className="usb-face u-back" />
+                <div className="usb-face u-right" />
+                <div className="usb-face u-left" />
+                <div className="usb-face u-bottom" />
+                <div className="usb-face u-top" />
+                <div className="usb-face u-front" />
+                <div className="usb-face u-c-back" />
+                <div className="usb-face u-c-right" />
+                <div className="usb-face u-c-left" />
+                <div className="usb-face u-c-bottom" />
+                <div className="usb-face u-c-top" />
+                <div className="usb-face u-c-front" />
               </div>
             </div>
           </div>

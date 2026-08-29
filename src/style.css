@@ -525,12 +525,15 @@ code {
    mechanism as before, driven from Hero.tsx. The carousel inside cycles
    through the providers the README itself names. ------------------------ */
 
-.window-perspective { perspective: 2000px; margin: 0 auto; width: 640px; max-width: 88vw; }
+.window-perspective { perspective: 2800px; width: 100%; }
 .window-orbit { transform-style: preserve-3d; animation: window-drift 10s ease-in-out infinite; }
 .window-tilt { transform-style: preserve-3d; transition: transform 150ms ease-out; }
-.window-object { position: relative; width: 640px; max-width: 88vw; margin: 0 auto; transform-style: preserve-3d; }
+.window-object {
+  position: relative; margin: 0 auto; transform-style: preserve-3d;
+  width: clamp(560px, 44vw, 980px);
+}
 .browser-edge {
-  position: absolute; inset: 0; transform: translate(10px, 14px) translateZ(-24px);
+  position: absolute; inset: 0; transform: translate(12px, 16px) translateZ(-24px);
   background: var(--paper-sunken); border: 1.5px solid var(--rule-strong); border-radius: 18px;
 }
 .browser-card {
@@ -547,39 +550,60 @@ code {
 }
 .browser-chrome {
   display: flex; align-items: center; gap: 0.7rem;
-  padding: 0.85rem 1.1rem;
+  padding: 0.9rem 1.2rem;
   border-bottom: 1px solid var(--rule);
   background: linear-gradient(180deg, var(--paper-sunken) 0%, var(--rule) 220%);
 }
 .browser-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rule-strong); flex: none; }
 .browser-url {
   flex: 1; text-align: center;
-  font-family: var(--mono); font-size: 0.8rem; color: var(--ink-muted); letter-spacing: 0.02em;
+  font-family: var(--mono); font-size: 0.82rem; color: var(--ink-muted); letter-spacing: 0.02em;
   background: var(--paper-raised); border: 1px solid var(--rule); border-radius: 999px;
-  padding: 0.4rem 1rem; transition: opacity 200ms ease;
+  padding: 0.42rem 1rem; transition: opacity 180ms ease;
 }
-.browser-screen { position: relative; height: 21rem; background: var(--paper); }
+.browser-screen { position: relative; height: clamp(300px, 25vw, 480px); background: var(--paper); }
 .provider-slide {
-  position: absolute; inset: 0; padding: 2.4rem 2.6rem;
-  display: flex; flex-direction: column; justify-content: center; gap: 1.1rem;
-  opacity: 0; transform: translateY(10px);
-  transition: opacity 420ms ease, transform 420ms ease;
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transform: scale(0.94);
+  transition: opacity 200ms ease, transform 200ms ease;
 }
-.provider-slide.active { opacity: 1; transform: translateY(0); }
-.provider-name { font-family: var(--serif); font-size: clamp(1.4rem, 2.4vw, 1.9rem); font-weight: 600; }
-.provider-lines { display: flex; flex-direction: column; gap: 0.65rem; }
-.provider-lines span { display: block; height: 0.75rem; border-radius: 4px; background: var(--rule); }
-.provider-lines span:nth-child(1) { width: 84%; }
-.provider-lines span:nth-child(2) { width: 62%; }
-.provider-lines span:nth-child(3) { width: 40%; background: var(--amber-edge); }
+.provider-slide.active { opacity: 1; transform: scale(1); transition: opacity 260ms ease-out 90ms, transform 260ms cubic-bezier(0.23, 1, 0.32, 1) 90ms; }
+.provider-name { font-family: var(--serif); font-weight: 600; letter-spacing: -0.01em; color: var(--ink); font-size: clamp(2.75rem, 4.6vw, 4.5rem); }
 
-.window-ground { width: 500px; height: 44px; margin: 1.4rem auto 0; background: radial-gradient(ellipse at center, var(--ink) 0%, transparent 72%); opacity: 0.12; animation: window-ground-drift 10s ease-in-out infinite; position: relative; z-index: 1; }
+/* the drive that does the handoff — half-scale of the original hero object,
+   docked at the window's bottom edge. Plugs out, the screen swaps, plugs
+   back in: the transition IS the mechanism, not a generic crossfade. */
+.usb-dock {
+  /* bottom is negative on purpose: origin sits BELOW window-object's bottom
+     edge so the body hangs outside the card and only the connector
+     (140..100px above origin) overlaps up into it. */
+  position: absolute; left: 50%; bottom: -122px; width: 0; height: 0;
+  transform-style: preserve-3d; z-index: 2;
+  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.usb-dock.swapping { transition: transform 200ms ease-in; transform: translateY(20px) rotateZ(-4deg); }
+.usb-face { position: absolute; border: 1.5px solid var(--ink); box-sizing: border-box; }
+.u-front  { width: 130px; height: 200px; margin: -100px 0 0 -65px; transform: translateZ(19px); background: linear-gradient(155deg, var(--paper-raised) 0%, var(--paper-sunken) 82%); border-radius: 14px 14px 4px 4px; }
+.u-back   { width: 130px; height: 200px; margin: -100px 0 0 -65px; transform: translateZ(-19px) rotateY(180deg); background: var(--paper-sunken); border-radius: 14px 14px 4px 4px; }
+.u-right  { width: 38px;  height: 200px; margin: -100px 0 0 -19px; transform: rotateY(90deg) translateZ(65px); background: linear-gradient(180deg, var(--rule) 0%, var(--rule-strong) 100%); }
+.u-left   { width: 38px;  height: 200px; margin: -100px 0 0 -19px; transform: rotateY(-90deg) translateZ(65px); background: linear-gradient(180deg, var(--paper-sunken) 0%, var(--rule) 100%); }
+.u-top    { width: 130px; height: 38px;  margin: -19px 0 0 -65px; transform: rotateX(90deg) translateZ(100px); background: linear-gradient(100deg, var(--paper-raised) 0%, var(--rule) 100%); border-radius: 14px 14px 0 0; }
+.u-bottom { width: 130px; height: 38px;  margin: -19px 0 0 -65px; transform: rotateX(-90deg) translateZ(100px); background: var(--rule-strong); border-radius: 0 0 4px 4px; }
+.u-c-front  { width: 55px; height: 40px; margin: -20px 0 0 -28px; transform: translateY(-120px) translateZ(8px); background: linear-gradient(115deg, var(--rule-strong) 0%, var(--ink-muted) 42%, var(--rule-strong) 58%, var(--ink-muted) 100%); border-radius: 3px 3px 0 0; }
+.u-c-back   { width: 55px; height: 40px; margin: -20px 0 0 -28px; transform: translateY(-120px) translateZ(-8px) rotateY(180deg); background: var(--ink-muted); border-radius: 3px 3px 0 0; }
+.u-c-right  { width: 16px; height: 40px; margin: -20px 0 0 -8px;  transform: translateY(-120px) rotateY(90deg) translateZ(28px); background: linear-gradient(180deg, var(--ink-muted), var(--rule-strong)); }
+.u-c-left   { width: 16px; height: 40px; margin: -20px 0 0 -8px;  transform: translateY(-120px) rotateY(-90deg) translateZ(28px); background: linear-gradient(180deg, var(--rule-strong), var(--ink-muted)); }
+.u-c-top    { width: 55px; height: 16px; margin: -8px 0 0 -28px;  transform: translateY(-120px) rotateX(90deg) translateZ(20px); background: var(--rule-strong); border-radius: 3px 3px 0 0; }
+.u-c-bottom { width: 55px; height: 16px; margin: -8px 0 0 -28px;  transform: translateY(-120px) rotateX(-90deg) translateZ(20px); background: var(--ink-muted); }
+
+.window-ground { width: clamp(400px, 34vw, 720px); height: 44px; margin: 0.6rem auto 0; background: radial-gradient(ellipse at center, var(--ink) 0%, transparent 72%); opacity: 0.12; animation: window-ground-drift 10s ease-in-out infinite; position: relative; z-index: 1; }
 @keyframes window-drift { 0%, 100% { transform: rotateY(-6deg) rotateX(2deg) translateY(0); } 50% { transform: rotateY(6deg) rotateX(-1deg) translateY(-9px); } }
 @keyframes window-ground-drift { 0%, 100% { transform: scaleX(1); opacity: 0.12; } 50% { transform: scaleX(0.88); opacity: 0.08; } }
 
 @media (max-width: 46rem) {
-  .browser-screen { height: 17rem; }
-  .provider-slide { padding: 1.6rem 1.8rem; }
+  .usb-dock { transform: scale(0.6); bottom: -74px; }
+  .usb-dock.swapping { transform: scale(0.6) translateY(14px) rotateZ(-4deg); }
 }
 
 /* --- the hero itself — full-bleed, breaks out of main's reading column
@@ -591,18 +615,19 @@ code {
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
-  min-height: 94vh;
+  min-height: 90vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: clamp(1.5rem, 4vh, 3rem);
   text-align: center;
-  padding: 4rem 1.5rem 3rem;
+  padding: 3rem 1.5rem;
   position: relative;
   overflow: hidden;
   background: radial-gradient(ellipse 70% 55% at 50% 32%, var(--paper-raised) 0%, var(--paper) 68%);
 }
-.hero-copy { position: relative; z-index: 1; margin-bottom: 2.75rem; transition: transform 150ms ease-out, opacity 150ms ease-out; }
+.hero-copy { position: relative; z-index: 1; transition: transform 150ms ease-out, opacity 150ms ease-out; }
 .hero-copy h2 {
   font-size: clamp(2.75rem, 9vw, 6.75rem);
   font-weight: 600;
@@ -616,6 +641,7 @@ code {
 @media (prefers-reduced-motion: reduce) {
   .window-orbit, .window-ground { animation: none; }
   .provider-slide { transition: opacity 200ms ease; transform: none !important; }
+  .usb-dock, .usb-dock.swapping { transition: none; transform: none !important; }
 }
 
 /* --- motion --------------------------------------------------------------
