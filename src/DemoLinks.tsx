@@ -239,7 +239,7 @@ export function DemoLinks() {
                 <span className="demo-card-progress-track" aria-hidden="true">
                   <span
                     className="demo-card-progress-fill"
-                    style={{ width: `${tasks.length ? (done / tasks.length) * 100 : 0}%` }}
+                    style={{ transform: `scaleX(${tasks.length ? done / tasks.length : 0})` }}
                   />
                 </span>
                 <span className="demo-card-progress-label">

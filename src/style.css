@@ -11,11 +11,11 @@
    thing that has stopped and is waiting for a person.
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Vollkorn:ital,wght@0,400;0,600;0,700;1,400&family=Spline+Sans+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  --serif: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
-  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --serif: "Vollkorn", ui-serif, Georgia, "Times New Roman", serif;
+  --mono: "Spline Sans Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --paper: #FBF9F5;
   --paper-raised: #FFFFFF;
@@ -127,6 +127,7 @@ body {
   font-family: var(--serif);
   font-size: 17px;
   line-height: 1.6;
+  font-variant-numeric: lining-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -654,7 +655,7 @@ code {
 .demo-card-title { font-family: var(--serif); font-size: 1.05rem; line-height: 1.35; color: var(--ink); }
 .demo-card-progress { display: flex; flex-direction: column; gap: 0.35rem; width: 100%; margin-top: 0.1rem; }
 .demo-card-progress-track { display: block; height: 3px; border-radius: 999px; background: var(--rule); overflow: hidden; }
-.demo-card-progress-fill { display: block; height: 100%; background: var(--seal); border-radius: inherit; transition: width 0.2s ease; }
+.demo-card-progress-fill { display: block; width: 100%; height: 100%; background: var(--seal); border-radius: inherit; transform-origin: left; transition: transform 0.2s ease; }
 .demo-card-progress-label { font-family: var(--mono); font-size: 0.7rem; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 
 .demo-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 5vh 1.25rem; background: rgba(15, 12, 9, 0.6); }
