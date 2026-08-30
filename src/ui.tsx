@@ -116,10 +116,7 @@ export function Masthead({ children, connect = false }: { children?: React.React
         <span className="mark-slot" ref={markSlotRef}>
           <BrowserMark />
         </span>
-        <h1 className="wordmark">
-          Handback
-          <span className="wordmark-sub">Hand off the work. Get it back intact.</span>
-        </h1>
+        <h1 className="wordmark">Handback</h1>
       </div>
       <div className="masthead-meta">
         {children}

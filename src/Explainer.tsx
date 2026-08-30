@@ -135,7 +135,6 @@ export function Explainer() {
 
   return (
     <section className="explainer-section" aria-labelledby="explainer-heading">
-      <p className="explainer-eyebrow">The mechanism</p>
       <h2 className="explainer-title" id="explainer-heading">
         How it actually works
       </h2>
