@@ -305,6 +305,7 @@ function ManualContributionForm({
   baseVersion: number;
   onStage: (contribution: Contribution) => void;
 }) {
+
   const [note, setNote] = useState("");
   const [value, setValue] = useState("");
   const [op, setOp] = useState("add_decision");
@@ -321,7 +322,8 @@ function ManualContributionForm({
     >
       <h2>Propose a change</h2>
       <p className="compose-intro muted">
-        Staged for review against version {baseVersion}. Nothing is written until someone approves it.
+        Staged for review against version {baseVersion}. Nothing is written until someone approves it. Auto-approval
+        governs what your agent does through WebMCP; anything you type here always gets a review step.
       </p>
 
       <label>

@@ -1,5 +1,12 @@
 # Handback — WebMCP MVP
 
+> **Historical.** This is a pre-build MVP spec, kept for its reasoning and its
+> WebMCP research. It describes the product as scoped, not as shipped. Two
+> deliberate changes since: auto-approval is on by default, so the write tools
+> create rather than stage unless a device turns the gate on; and a fifth tool,
+> `handback_settings`, was added. README.md and SECURITY.md describe the shipped
+> behaviour.
+
 ## Product interaction
 
 The user opens the Handback creation page in a WebMCP-capable browser and tells the current agent:
@@ -158,7 +165,7 @@ Annotations:
 
 There is deliberately no agent-callable `approve_contribution` tool in the MVP. Approval remains a human UI action, preventing the same agent from proposing and self-approving a canonical change.
 
-After the human approves, the visible page updates to the committed version and hash. The MVP deliberately does not add a fifth receipt tool; the receiving agent can call `read_handoff` again to verify the new canonical version.
+After the human approves, the visible page updates to the committed version and hash. The MVP deliberately did not add a fifth receipt tool (a fifth tool, `handback_settings`, was later added for a different purpose); the receiving agent can call `read_handoff` again to verify the new canonical version.
 
 ## Registration shape
 
@@ -252,7 +259,6 @@ The judging criteria are equally weighted across WebMCP leverage, execution, imp
 - Formal A2A/MCP server
 - Public protocol standardization campaign
 - Social profiles or agent identity network
-- Invisible automatic approval
 
 ## Verification checklist
 

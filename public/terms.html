@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Terms — Handback</title>
+    <meta name="description" content="Handback is provided free and as is. What that means, and how to report something." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <style>
+      /* Self-contained: these pages must stay readable even if the app bundle
+         fails, and they cannot depend on Vite's hashed CSS filename. */
+      @font-face { font-family: 'Vollkorn'; font-style: normal; font-weight: 400 900; font-display: swap; src: url('/fonts/vollkorn-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Spline Sans Mono'; font-style: normal; font-weight: 300 700; font-display: swap; src: url('/fonts/spline-sans-mono-latin.woff2') format('woff2'); }
+      :root { --paper:#FBF9F5; --ink:#1A1714; --ink-muted:#655C51; --rule:#E2DBD0; --seal:#2C5647; color-scheme: light; }
+      @media (prefers-color-scheme: dark) { :root { --paper:#15130F; --ink:#F3EEE4; --ink-muted:#A89C8B; --rule:#2F2A23; --seal:#83C4AC; color-scheme: dark; } }
+      * { box-sizing: border-box; }
+      body { margin:0; background:var(--paper); color:var(--ink); font-family:'Vollkorn',ui-serif,Georgia,serif; font-size:17px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+      main { max-width:38rem; margin:0 auto; padding:3.5rem 1.25rem 6rem; }
+      h1 { font-size:clamp(1.6rem,5vw,2.1rem); line-height:1.15; margin:0 0 0.4rem; letter-spacing:-0.02em; }
+      h2 { font-size:1.15rem; margin:2.5rem 0 0.6rem; }
+      p, li { margin:0 0 1rem; }
+      ul { padding-left:1.1rem; }
+      a { color:var(--seal); }
+      code { font-family:'Spline Sans Mono',ui-monospace,Menlo,monospace; font-size:0.86em; overflow-wrap:anywhere; }
+      .updated { font-family:'Spline Sans Mono',ui-monospace,Menlo,monospace; font-size:0.75rem; color:var(--ink-muted); margin:0 0 2.5rem; }
+      .back { display:inline-block; margin-bottom:2rem; font-family:'Spline Sans Mono',ui-monospace,Menlo,monospace; font-size:0.78rem; }
+      footer { margin-top:3.5rem; padding-top:1.5rem; border-top:1px solid var(--rule); font-family:'Spline Sans Mono',ui-monospace,Menlo,monospace; font-size:0.75rem; color:var(--ink-muted); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="/">&larr; handback.link</a>
+      <h1>Terms</h1>
+      <p class="updated">Last updated 31 August 2026</p>
+
+      <p>
+        Handback is provided free and as is, with no warranty of any kind. It is a hackathon project, not a product with
+        an uptime commitment behind it.
+      </p>
+
+      <h2>Do not store anything you cannot afford to lose</h2>
+      <p>
+        Handoffs are deleted when their retention window passes, and the operator does not guarantee the service, its
+        availability, or that any handoff will still be there when you come back. Download a copy of anything that
+        matters. Every handoff page has a button that does exactly that.
+      </p>
+
+      <h2>A link is a key</h2>
+      <p>
+        Anyone holding a whole Handback link can read the handoff it points at. There is no account and no other
+        authorisation, so possession of the link is the entire permission model. Share one the way you would share the
+        document itself.
+      </p>
+
+      <h2>Reporting content</h2>
+      <p>
+        The operator cannot read what you store and does not monitor it. On a credible report of illegal content, the
+        handoff will be deleted. Open an issue at
+        <a href="https://github.com/BraedenBDev/handback/issues">github.com/BraedenBDev/handback/issues</a> with the
+        handoff's id, which is the part of the link before the <code>#</code>. Do not include the part after the
+        <code>#</code>: that is the decryption key, and posting it publicly discloses the contents.
+      </p>
+
+      <h2>Liability</h2>
+      <p>
+        To the extent the law allows, the operator is not liable for any loss arising from use of this service. Nothing
+        here excludes liability that cannot lawfully be excluded, including liability for death or personal injury
+        caused by negligence.
+      </p>
+
+      <h2>The code</h2>
+      <p>
+        The source is public and MIT licensed at
+        <a href="https://github.com/BraedenBDev/handback">github.com/BraedenBDev/handback</a>. That licence covers the
+        code you obtain a copy of. It does not cover this hosted service, which is what this page is for.
+      </p>
+
+      <footer>handback.link · <a href="/privacy.html">Privacy</a> · <a href="https://github.com/BraedenBDev/handback">Source</a> · MIT</footer>
+    </main>
+  </body>
+</html>

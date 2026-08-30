@@ -8,70 +8,84 @@ type Turn = { from: "user" | "agent"; text: string; link?: string };
  * Play both halves in one unbroken transcript and it reads as an agent
  * with memory, which is the opposite of the claim.
  */
-type Script = { provider: string; segments: Turn[][] };
+type Segment = { provider: string; turns: Turn[] };
+type Script = { segments: Segment[] };
 
 /**
- * Three short, plausible tasks — one per provider the README names as
- * unable to open each other's work — so the URL bar's placeholder (before
- * a link resolves) names the actual agent instead of a generic "new
- * session," and the loop demonstrates all three, not just two. Each script
- * runs the mechanic twice: the first save mints the link, then a second
- * agent (same window, standing in for "whoever opens it next") reads that
- * same link back, edits, and saves again — proving persistence and the
- * "same link, new version" claim inside the demo itself rather than only
- * in the explainer text below it. Only the final turn's link triggers the
- * click/resolve moment; the first is shown, not yet proven.
+ * Each script crosses vendors. The provider is a property of the SEGMENT,
+ * not the script, so the address bar names one agent before the wipe and a
+ * different one after it: Claude hands to ChatGPT, ChatGPT to Gemini,
+ * Gemini back to Claude. That is the whole pitch, and with one provider on
+ * both sides the demo only proved persistence, which a text file also has.
+ * The link text is identical across the gap, so "same link, new version"
+ * is checkable by eye. Only the closing turn triggers the click/resolve
+ * moment; the first link is shown, not yet proven.
  */
 const SCRIPTS: Script[] = [
   {
-    provider: "Claude",
     segments: [
-      [
-        { from: "user", text: "Research dinosaurs for me." },
-        { from: "agent", text: "Done. Three key eras, a shortlist of sources, one open question about feathered species." },
-        { from: "user", text: "Save this to handback.link." },
-        { from: "agent", text: "Here's your link:", link: "handback.link/h/aB3xY9Qz…#••••••" },
-      ],
-      [
-        { from: "user", text: "Pick up the research from this handback.link." },
-        { from: "agent", text: "Loaded. Three key eras, one open question about feathered species." },
-        { from: "user", text: "Add the asteroid impact timeline, then hand it back." },
-        { from: "agent", text: "Added. Same link, new version.", link: "handback.link/h/aB3xY9Qz…#••••••" },
-      ],
+      {
+        provider: "Claude",
+        turns: [
+          { from: "user", text: "Research dinosaurs for me." },
+          { from: "agent", text: "Done. Three key eras, a shortlist of sources, one open question about feathered species." },
+          { from: "user", text: "Save this to handback.link." },
+          { from: "agent", text: "Here's your link:", link: "handback.link/h/aB3xY9Qz…#••••••" },
+        ],
+      },
+      {
+        provider: "ChatGPT",
+        turns: [
+          { from: "user", text: "Pick up the research from this handback.link." },
+          { from: "agent", text: "Loaded. Three key eras, one open question about feathered species." },
+          { from: "user", text: "Add the asteroid impact timeline, then hand it back." },
+          { from: "agent", text: "Added. Same link, new version.", link: "handback.link/h/aB3xY9Qz…#••••••" },
+        ],
+      },
     ],
   },
   {
-    provider: "ChatGPT",
     segments: [
-      [
-        { from: "user", text: "Summarize this thread for the team." },
-        { from: "agent", text: "Done. Objective, decisions, and two open questions, written up." },
-        { from: "user", text: "Save this to handback.link." },
-        { from: "agent", text: "Here's your link:", link: "handback.link/h/8k2NpQr7…#••••••" },
-      ],
-      [
-        { from: "user", text: "Pick up the summary from this handback.link." },
-        { from: "agent", text: "Loaded. Objective, decisions, two open questions." },
-        { from: "user", text: "Mark the pricing decision resolved, then hand it back." },
-        { from: "agent", text: "Updated. Same link, new version.", link: "handback.link/h/8k2NpQr7…#••••••" },
-      ],
+      {
+        provider: "ChatGPT",
+        turns: [
+          { from: "user", text: "Summarize this thread for the team." },
+          { from: "agent", text: "Done. Objective, decisions, and two open questions, written up." },
+          { from: "user", text: "Save this to handback.link." },
+          { from: "agent", text: "Here's your link:", link: "handback.link/h/8k2NpQr7…#••••••" },
+        ],
+      },
+      {
+        provider: "Gemini",
+        turns: [
+          { from: "user", text: "Pick up the summary from this handback.link." },
+          { from: "agent", text: "Loaded. Objective, decisions, two open questions." },
+          { from: "user", text: "Mark the pricing decision resolved, then hand it back." },
+          { from: "agent", text: "Updated. Same link, new version.", link: "handback.link/h/8k2NpQr7…#••••••" },
+        ],
+      },
     ],
   },
   {
-    provider: "Gemini",
     segments: [
-      [
-        { from: "user", text: "Sketch pricing page copy." },
-        { from: "agent", text: "Done. Three tiers drafted, each with a one-line pitch." },
-        { from: "user", text: "Save this to handback.link." },
-        { from: "agent", text: "Here's your link:", link: "handback.link/h/qW4vLm2N…#••••••" },
-      ],
-      [
-        { from: "user", text: "Pick up the pricing draft from this handback.link." },
-        { from: "agent", text: "Loaded. Three tiers, one pitch line each." },
-        { from: "user", text: "Rewrite the enterprise tier pitch, then hand it back." },
-        { from: "agent", text: "Updated. Same link, new version.", link: "handback.link/h/qW4vLm2N…#••••••" },
-      ],
+      {
+        provider: "Gemini",
+        turns: [
+          { from: "user", text: "Sketch pricing page copy." },
+          { from: "agent", text: "Done. Three tiers drafted, each with a one-line pitch." },
+          { from: "user", text: "Save this to handback.link." },
+          { from: "agent", text: "Here's your link:", link: "handback.link/h/qW4vLm2N…#••••••" },
+        ],
+      },
+      {
+        provider: "Claude",
+        turns: [
+          { from: "user", text: "Pick up the pricing draft from this handback.link." },
+          { from: "agent", text: "Loaded. Three tiers, one pitch line each." },
+          { from: "user", text: "Rewrite the enterprise tier pitch, then hand it back." },
+          { from: "agent", text: "Updated. Same link, new version.", link: "handback.link/h/qW4vLm2N…#••••••" },
+        ],
+      },
     ],
   },
 ];
@@ -113,7 +127,7 @@ export function Hero({ onExit }: { onExit: () => void }) {
   const script = SCRIPTS[scriptIndex % SCRIPTS.length]!;
   const segment = script.segments[segmentIndex]!;
   const isLastSegment = segmentIndex === script.segments.length - 1;
-  const lastTurn = segment[segment.length - 1]!;
+  const lastTurn = segment.turns[segment.turns.length - 1]!;
 
   useEffect(() => {
     const node = stageRef.current;
@@ -136,14 +150,14 @@ export function Hero({ onExit }: { onExit: () => void }) {
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       setSegmentIndex(script.segments.length - 1);
-      setTurnCount(script.segments[script.segments.length - 1]!.length);
+      setTurnCount(script.segments[script.segments.length - 1]!.turns.length);
       setPhase("clicked");
       return;
     }
 
     let timer: number;
 
-    if (phase === "typing" && turnCount < segment.length) {
+    if (phase === "typing" && turnCount < segment.turns.length) {
       const delay = turnCount === 0 ? FIRST_TURN_DELAY_MS : TURN_DELAY_MS;
       timer = window.setTimeout(() => setTurnCount((n) => n + 1), delay);
     } else if (phase === "typing" && !isLastSegment) {
@@ -170,7 +184,7 @@ export function Hero({ onExit }: { onExit: () => void }) {
     }
 
     return () => window.clearTimeout(timer);
-  }, [phase, turnCount, scriptIndex, segmentIndex, segment.length, isLastSegment, script.segments]);
+  }, [phase, turnCount, scriptIndex, segmentIndex, segment.turns.length, isLastSegment, script.segments]);
 
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
@@ -234,7 +248,7 @@ export function Hero({ onExit }: { onExit: () => void }) {
   }, []);
 
   const linkLive = phase === "clicked" || phase === "clearing";
-  const urlText = linkLive ? lastTurn.link ?? "" : script.provider;
+  const urlText = linkLive ? lastTurn.link ?? "" : segment.provider;
   const wiping = phase === "clearing" || phase === "session-break";
 
   return (
@@ -278,13 +292,13 @@ export function Hero({ onExit }: { onExit: () => void }) {
                     */}
                     <div className="chat-stack">
                       {SCRIPTS.map((s, si) =>
-                        s.segments.map((turns, gi) => {
+                        s.segments.map((seg, gi) => {
                           const active = si === scriptIndex % SCRIPTS.length && gi === segmentIndex;
                           const closing = si === scriptIndex % SCRIPTS.length && gi === s.segments.length - 1;
                           return (
                             <div className={`chat-segment${active ? " active" : ""}`} key={`${si}-${gi}`}>
-                              {turns.map((turn, i) => {
-                                const isFinal = closing && i === turns.length - 1;
+                              {seg.turns.map((turn, i) => {
+                                const isFinal = closing && i === seg.turns.length - 1;
                                 const shown = active && i < turnCount;
                                 return (
                                   <div className={`chat-turn ${turn.from}${shown ? " visible" : ""}`} key={i}>

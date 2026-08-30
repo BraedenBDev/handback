@@ -37,6 +37,11 @@ const ITEMS: Item[] = [
           in the URL fragment, the part after the <code className="explainer-inline-code">#</code>, which browsers never transmit to a
           server. So the server only ever holds ciphertext it can't read. You get exactly one link.
         </p>
+        <p>
+          This is a bearer capability, not zero-knowledge, and it's worth being plain about the difference. Anyone
+          holding the whole link can read the handoff, and the server does ship the JavaScript that does the encrypting.
+          Treat the link the way you'd treat the document itself.
+        </p>
       </>
     ),
   },

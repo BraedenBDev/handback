@@ -293,7 +293,7 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
     name: "get_handoff_receipt",
     title: "Check whether the handoff was created",
     description:
-      "Report whether the human has approved the staged handoff yet. Returns pending until they click Approve and create, then returns the shareable link and version.",
+      "Report the link for the handoff on this page. Returns the shareable link and version once it exists, which under the default is immediately after stage_handoff. Returns pending while it waits for a human click, which only happens on devices with the approval gate switched on.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true, untrustedContentHint: false },
     execute: async () => toToolResult(bridge.getReceipt()),

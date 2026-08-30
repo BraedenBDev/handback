@@ -7,7 +7,7 @@ import { ImportError, readPortableFile } from "./import.ts";
 import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
 import { DEFAULT_RETENTION_DAYS, MAX_RETENTION_DAYS, RETENTION_CHOICES, describeExpiry, isValidRetention } from "../shared/expiry.ts";
 import { readAutoApprove, writeAutoApprove } from "./auto-approve.ts";
-import { ApprovalMode, ErrorNote, Field, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
+import { ApprovalMode, ErrorNote, Field, Masthead, REPOSITORY_URL, Seal, StateView, ToolStatus } from "./ui.tsx";
 import { Hero } from "./Hero.tsx";
 import { DemoLinks } from "./DemoLinks.tsx";
 import { Explainer } from "./Explainer.tsx";
@@ -247,13 +247,30 @@ export function CreatePage() {
         <ManualDraftForm onStage={setDraft} onImport={importFile} />
       )}
       </div>
-      {showHero ? (
-        <>
-          <DemoLinks />
-          <Explainer />
-        </>
-      ) : null}
+      {/*
+        These explain the product, so they sit above nothing and below the
+        card, and they are NOT gated on showHero any more: a judge who creates
+        a handoff used to make them disappear with no route back to them.
+      */}
+      <DemoLinks />
+      <Explainer />
+      <SiteFooter />
     </main>
+  );
+}
+
+function SiteFooter() {
+  return (
+    <footer className="site-footer">
+      <span>handback.link</span>
+      <a href={REPOSITORY_URL} target="_blank" rel="noopener noreferrer">
+        <span>github.com/BraedenBDev/handback</span>
+      </a>
+      <a href="/privacy.html"><span>Privacy</span></a>
+      <a href="/terms.html"><span>Terms</span></a>
+      <span>MIT</span>
+      <span>Built for the WebMCP Challenge</span>
+    </footer>
   );
 }
 

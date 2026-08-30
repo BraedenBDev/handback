@@ -5,9 +5,11 @@ another person has to read them. The machinery around them (labels, versions,
 keys, seals) is mono, because it is apparatus. You can tell which is which at a
 glance.
 
-Amber is the accent because it means *awaiting you*. The approval gate is the
-product, so the product's colour is the colour of something stopped, waiting for
-a person.
+Amber is the accent because it means *awaiting you*: the colour of something
+stopped, waiting for a person. It marks the approval gate, which since
+2026-08-30 is opt in rather than mandatory. An agent can switch that gate on and
+is refused when it tries to switch it off, so amber still marks the one state
+only a human resolves. It is used sparingly for that reason.
 
 Every version carries a **seal**: the first eight characters of a SHA-256 over
 its state, bound to its version number and its parent's hash. Edit a document

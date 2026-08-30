@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Privacy — Handback</title>
+    <meta name="description" content="What Handback stores, what the operator can and cannot read, and how long anything lasts." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <style>
+      /* Self-contained: these pages must stay readable even if the app bundle
+         fails, and they cannot depend on Vite's hashed CSS filename. */
+      @font-face { font-family: 'Vollkorn'; font-style: normal; font-weight: 400 900; font-display: swap; src: url('/fonts/vollkorn-latin.woff2') format('woff2'); }
+      @font-face { font-family: 'Spline Sans Mono'; font-style: normal; font-weight: 300 700; font-display: swap; src: url('/fonts/spline-sans-mono-latin.woff2') format('woff2'); }
+      :root { --paper:#FBF9F5; --ink:#1A1714; --ink-muted:#655C51; --rule:#E2DBD0; --seal:#2C5647; color-scheme: light; }
+      @media (prefers-color-scheme: dark) { :root { --paper:#15130F; --ink:#F3EEE4; --ink-muted:#A89C8B; --rule:#2F2A23; --seal:#83C4AC; color-scheme: dark; } }
+      * { box-sizing: border-box; }
+      body { margin:0; background:var(--paper); color:var(--ink); font-family:'Vollkorn',ui-serif,Georgia,serif; font-size:17px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+      main { max-width:38rem; margin:0 auto; padding:3.5rem 1.25rem 6rem; }
+      h1 { font-size:clamp(1.6rem,5vw,2.1rem); line-height:1.15; margin:0 0 0.4rem; letter-spacing:-0.02em; }
+      h2 { font-size:1.15rem; margin:2.5rem 0 0.6rem; }
+      p, li { margin:0 0 1rem; }
+      ul { padding-left:1.1rem; }
+      a { color:var(--seal); }
+      code { font-family:'Spline Sans Mono',ui-monospace,Menlo,monospace; font-size:0.86em; overflow-wrap:anywhere; }
+      .updated { font-family:'Spline Sans Mono',ui-monospace,Menlo,monospace; font-size:0.75rem; color:var(--ink-muted); margin:0 0 2.5rem; }
+      .back { display:inline-block; margin-bottom:2rem; font-family:'Spline Sans Mono',ui-monospace,Menlo,monospace; font-size:0.78rem; }
+      footer { margin-top:3.5rem; padding-top:1.5rem; border-top:1px solid var(--rule); font-family:'Spline Sans Mono',ui-monospace,Menlo,monospace; font-size:0.75rem; color:var(--ink-muted); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="/">&larr; handback.link</a>
+      <h1>Privacy</h1>
+      <p class="updated">Last updated 31 August 2026</p>
+
+      <p>
+        Handback is a free tool with no accounts. This page is short because there is genuinely very little to describe.
+        Questions, or a request to delete something, go to
+        <a href="https://github.com/BraedenBDev/handback/issues">the project's issue tracker</a>.
+      </p>
+
+      <h2>What the server stores</h2>
+      <p>
+        Your browser encrypts a handoff's contents with AES-256-GCM before anything leaves your machine. The server
+        receives and stores only:
+      </p>
+      <ul>
+        <li>an opaque random id</li>
+        <li>a version number</li>
+        <li>the ciphertext and its initialisation vector</li>
+        <li>ISO timestamps and the expiry window you chose</li>
+      </ul>
+      <p>
+        There are no other columns in the database. No titles, no summaries, no search index, no account, no email
+        address.
+      </p>
+
+      <h2>What the operator can and cannot read</h2>
+      <p>
+        The decryption key is generated in your browser and lives only in the URL fragment, the part after the
+        <code>#</code>. Browsers do not send fragments to servers, so that key has never reached this server and the
+        operator cannot decrypt anything stored here.
+      </p>
+      <p>
+        This is not zero-knowledge, and calling it that would be dishonest. The server ships the JavaScript that does the
+        encrypting, so you are trusting that the code delivered to your browser is the code in the public repository. A
+        Handback link is also a bearer capability: anyone holding the whole link, fragment included, can read the
+        handoff. Treat the link the way you would treat the document itself, and remember that pasting it into a chat
+        tool puts it wherever that tool keeps its history.
+      </p>
+
+      <h2>Deletion</h2>
+      <p>
+        Every handoff carries a retention window chosen at creation: 24 hours, 7 days (the default), 30 days, or never.
+        The window runs from the last change rather than from creation, so a handoff someone is actively working on does
+        not vanish underneath them.
+      </p>
+      <p>
+        When the window passes, the ciphertext is deleted: the moment anyone next requests it, and by a daily sweep at
+        03:17 UTC for the ones nobody comes back to. It is a real delete, and nothing recovers the content afterwards. A
+        handoff created with "never" is kept until removed by hand, so open an issue with its id if you need one gone.
+      </p>
+
+      <h2>IP addresses</h2>
+      <p>
+        Creating a handoff sends your IP address to Cloudflare's rate limiter, which uses it as a counter key so that
+        scripted spam costs something. It is not written to the database and the application does not log it. Reading or
+        updating a handoff does not touch the rate limiter at all.
+      </p>
+
+      <h2>Storage in your browser</h2>
+      <p>
+        Handback keeps two settings in your browser's local storage: your colour theme, and whether writes require your
+        approval. Both are preferences you set yourself, both stay on your device, and nothing but this site reads them.
+        There are no cookies, no analytics, no tracking pixels and no third-party scripts, which is why you are not
+        being asked to consent to any.
+      </p>
+
+      <h2>Third parties</h2>
+      <p>
+        Cloudflare hosts the site, serves it, runs the database and applies the rate limit, acting as a processor. Like
+        any host it keeps its own request logs.
+      </p>
+      <p>
+        That is the entire list. Fonts are served from this origin rather than from Google, specifically so that
+        visiting this site does not send your IP address to a third party.
+      </p>
+
+      <h2>Your rights</h2>
+      <p>
+        Under the GDPR you can ask what is held about you, ask for it to be deleted, and complain to a supervisory
+        authority. In practice there is almost nothing to hand over: without your link, the operator cannot identify
+        which rows relate to you, and cannot read them either.
+      </p>
+
+      <footer>handback.link · <a href="/terms.html">Terms</a> · <a href="https://github.com/BraedenBDev/handback">Source</a> · MIT</footer>
+    </main>
+  </body>
+</html>
