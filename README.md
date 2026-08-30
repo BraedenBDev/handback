@@ -62,7 +62,7 @@ The round trip is the difference:
 
 You have been working with an agent. You say:
 
-> Hand this off to Handback.
+> Hand this off to handback.link.
 
 It opens the page, packages what matters, and hands your agent the link in the
 same call. Nothing to click.

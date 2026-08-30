@@ -9,9 +9,9 @@ const ITEMS: Item[] = [
       <>
         <p>You don't open a new app or fill out a form. You tell whatever agent you're already talking to what to do with the conversation.</p>
         <div className="explainer-chip-list">
-          <span className="explainer-chip">Hand this off to Handback</span>
-          <span className="explainer-chip">Save this to Handback before we lose the thread</span>
-          <span className="explainer-chip">Package this up in Handback for whoever's next</span>
+          <span className="explainer-chip">Hand this off to handback.link</span>
+          <span className="explainer-chip">Save this to handback.link before we lose the thread</span>
+          <span className="explainer-chip">Package this up in handback.link for whoever's next</span>
         </div>
       </>
     ),

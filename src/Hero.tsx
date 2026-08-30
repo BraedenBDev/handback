@@ -29,7 +29,7 @@ const SCRIPTS: Script[] = [
       [
         { from: "user", text: "Research dinosaurs for me." },
         { from: "agent", text: "Done. Three key eras, a shortlist of sources, one open question about feathered species." },
-        { from: "user", text: "Save this to Handback." },
+        { from: "user", text: "Save this to handback.link." },
         { from: "agent", text: "Here's your link:", link: "handback.link/h/aB3xY9Qz…#••••••" },
       ],
       [
@@ -46,7 +46,7 @@ const SCRIPTS: Script[] = [
       [
         { from: "user", text: "Summarize this thread for the team." },
         { from: "agent", text: "Done. Objective, decisions, and two open questions, written up." },
-        { from: "user", text: "Save this to Handback." },
+        { from: "user", text: "Save this to handback.link." },
         { from: "agent", text: "Here's your link:", link: "handback.link/h/8k2NpQr7…#••••••" },
       ],
       [
@@ -63,7 +63,7 @@ const SCRIPTS: Script[] = [
       [
         { from: "user", text: "Sketch pricing page copy." },
         { from: "agent", text: "Done. Three tiers drafted, each with a one-line pitch." },
-        { from: "user", text: "Save this to Handback." },
+        { from: "user", text: "Save this to handback.link." },
         { from: "agent", text: "Here's your link:", link: "handback.link/h/qW4vLm2N…#••••••" },
       ],
       [
