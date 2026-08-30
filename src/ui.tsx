@@ -285,8 +285,8 @@ export function ToolStatus({ available }: { available: boolean }) {
         <>
           <b>WebMCP not detected.</b>
           <span>
-            Use the ChatGPT desktop app's built-in browser with Site tools on, or Chrome 149+ with{" "}
-            <code>chrome://flags/#enable-webmcp-testing</code>. You can still use Handback by hand below.
+            This site runs the WebMCP origin trial, so Chrome 149 to 156 needs nothing set up. Outside that range, use
+            the ChatGPT desktop app's built-in browser with Site tools on. You can still use Handback by hand below.
           </span>
         </>
       )}

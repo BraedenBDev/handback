@@ -66,7 +66,7 @@
         "description": "Handback moves the state of an AI session between agents as one client-side-encrypted link. An agent packages the objective, decisions, constraints, tasks and open questions; another agent opens the same link, reads the structured state, and proposes a new sealed version.",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Any modern browser",
-        "browserRequirements": "WebMCP via document.modelContext, available in the ChatGPT desktop app browser with Site tools enabled or Chrome 149+ behind a flag. Works without WebMCP through the form on the page.",
+        "browserRequirements": "WebMCP via document.modelContext. This site runs the Chrome origin trial for it, so Chrome 149 to 156 needs no setup. Also available in the ChatGPT desktop app browser with Site tools enabled. Works without WebMCP through the form on the page.",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "license": "https://opensource.org/licenses/MIT",
         "codeRepository": "https://github.com/BraedenBDev/handback",
@@ -118,8 +118,9 @@
         <code>read_handoff</code>, <code>stage_contribution</code> and <code>handback_settings</code>. No approve or
         commit tool exists, and <code>handback_settings</code> can switch the human approval gate on but never off. It
         works today
-        in the ChatGPT desktop app's built-in browser with Site tools enabled, and in Chrome 149 or later with
-        <code>chrome://flags/#enable-webmcp-testing</code>. Agents without WebMCP use the ordinary form on the page.
+        in Chrome 149 to 156 with nothing to configure, because this site runs the Chrome origin trial for WebMCP, and
+        in the ChatGPT desktop app's built-in browser with Site tools enabled. Agents without WebMCP use the ordinary
+        form on the page.
         Auto-approval is on by default, so <code>stage_handoff</code> saves the handoff and returns the link in the same
         call; a per-device switch puts an approval gate back in front of every write. An agent can switch that gate on through
         <code>handback_settings</code>; only a person can switch it off.

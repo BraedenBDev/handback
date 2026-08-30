@@ -102,10 +102,13 @@ describe("Seal", () => {
 });
 
 describe("status and errors", () => {
-  it("tells the user how to enable WebMCP when it is missing", () => {
+  it("points at a browser that works, rather than a flag to set", () => {
     render(<ToolStatus available={false} />);
     expect(screen.getByText(/WebMCP not detected/)).toBeTruthy();
-    expect(screen.getByText(/enable-webmcp-testing/)).toBeTruthy();
+    // The site runs the origin trial, so Chrome 149-156 needs nothing set up.
+    // Telling people to edit chrome://flags is now wrong advice.
+    expect(screen.getByText(/Chrome 149 to 156/)).toBeTruthy();
+    expect(screen.queryByText(/enable-webmcp-testing/)).toBeNull();
   });
 
   it("confirms registration when WebMCP is present", () => {

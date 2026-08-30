@@ -336,8 +336,9 @@ export function Hero({ onExit }: { onExit: () => void }) {
         difference between a demo and a claim.
       */}
       <p className="hero-note">
-        <span aria-hidden="true">*</span> Built on WebMCP. Works today in ChatGPT's desktop browser with Site tools on, and in
-        Chrome 149+ behind a flag. The conversation above is scripted. Agents without WebMCP fill the page directly.
+        <span aria-hidden="true">*</span> Built on WebMCP. Works today in Chrome 149 to 156 with nothing to set up, and in
+        ChatGPT's desktop browser with Site tools on. The conversation above is scripted. Agents without WebMCP fill the
+        page directly.
       </p>
     </section>
   );

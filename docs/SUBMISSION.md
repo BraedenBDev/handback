@@ -113,26 +113,49 @@ browser tests, including one asserting the one-way gate in both directions.
 
 ---
 
-## Video shot list (target 2:45, hard cap 3:00)
+## Video shot list (target 2:40, hard cap 3:00)
 
-Record 1920×1080 at 125% browser zoom so tool-call payloads and the eight-character
-seal are legible. Left window: ChatGPT desktop app with Site tools on. Right
-window: a visibly different client (different profile and theme) so the cut reads
-as a different vendor. Pre-write both prompts and paste them; no typing dead air.
-Use a throwaway handoff, since the fragment key will be legible on a public video.
+Rewritten after the origin trial landed and the hero changed. Two things are
+different from the first draft: **nobody needs to set a browser flag any more**,
+which removes the most awkward thirty seconds of any WebMCP demo, and the hero
+now crosses vendors on screen.
 
-Do **not** film the landing hero as though it were the product. Its own footnote
-says the conversation is scripted, and a judge who sees only the animation
-assumes the whole entry is a mock.
+### Before you record
 
-| Time | Screen | Beat |
+**Settle the honesty question first.** The strongest claim is that work crosses
+from one vendor's agent to a different vendor's agent. Film that only if you
+genuinely have two. If both windows are ChatGPT, say "a different session" in
+the voiceover, not "a different agent" and not "a different vendor". Staging one
+thing to read as another is the same class of problem as a fake testimonial, and
+a judge who spots it discounts everything else. The session claim is still
+strong on its own: the state crossed a boundary the conversation could not.
+
+- Record 1920x1080 at 125% browser zoom so tool-call payloads and the
+  eight-character seal are legible.
+- Left window: ChatGPT desktop app, Site tools on.
+- Right window: whatever second agent you actually have. Plain Chrome 149 to 156
+  now works with no flags, so a clean profile is fine and looks better than a
+  flags page.
+- Pre-write both prompts and paste them. No typing dead air.
+- Use a throwaway handoff. The fragment key is a live decryption key and it will
+  be legible on a public video.
+- Do **not** film the landing hero as though it were the product. Its own
+  footnote says the conversation is scripted, and a judge who sees only the
+  animation assumes the whole entry is a mock. One second of it as B-roll under
+  the closing line is fine.
+
+### The beats
+
+| Time | Screen | Say |
 |---|---|---|
-| 0:00–0:12 | A finished conversation, then a hard cut to an empty chat box in a different agent | The problem: an hour of decisions lives in that window, and the next agent starts from a blank box |
-| 0:12–0:40 | Type `Hand this off to handback.link.` Expand the tool-call chip so the `stage_handoff` payload is on screen. Hold three seconds on it | WebMCP Leverage. The agent packages objective, decisions, open questions itself. Nobody copies a transcript |
-| 0:40–0:55 | The reply is the bare URL. Cursor-highlight the `#` and everything after it | Everything before the hash is an opaque id; everything after is the key, and browsers never send fragments. So the service holds ciphertext it cannot read — and whoever holds the whole link can. Say "bearer capability, not zero-knowledge" out loud |
-| 0:55–1:35 | Hard cut to the second window. Paste the link with `Pick up the work from this handback.link and tell me what I'm inheriting.` Show `read_handoff` fire. Let the answer play | The money shot. Different agent, different vendor, same link. It answers from structured data, not from prose it had to interpret. Do not rush this |
-| 1:35–2:05 | `Resolve the pricing question and hand it back.` Show `stage_contribution` with `baseVersion` visible. Cut to the page: seal ticks v1→v2, hash changes, History gains a row. Then hold on the unchanged URL bar | Same link, new version. The still URL bar is what makes the claim visible rather than asserted |
-| 2:05–2:30 | Agent calls `handback_settings` with `requireApproval: false`. Show the `human_only` refusal on screen. A human clicks Require approval. The next `stage_handoff` returns `staged_awaiting_human_approval` | The consent boundary. An agent can raise the bar and can never lower it. **Do not cut this beat** — it is what turns the auto-approve default from a liability into a design argument |
-| 2:30–2:45 | Landing page, then a card: handback.link · github.com/BraedenBDev/handback · MIT | Five WebMCP tools. No account, free, MIT |
+| 0:00-0:10 | A long finished conversation, scrolled. Hard cut to an empty chat box. | "You just spent an hour with an agent. The decisions, the constraints, everything you already ruled out, all of it lives in that window. Open a different agent and you start from a blank box." |
+| 0:10-0:22 | Type `Hand this off to handback.link.` | "You don't open an app. You tell the agent you're already talking to." |
+| 0:22-0:45 | Expand the tool-call chip. Hold three full seconds on the `stage_handoff` payload: objective, decisions, tasks, open questions. | "It calls a tool the page registered and packages the state itself. Nobody copies a transcript. Nobody fills in a form. No extension, no flag, no install: the site runs Chrome's origin trial, so the tools are just there." **This is the WebMCP Leverage beat. The payload must be readable.** |
+| 0:45-0:58 | The reply is the bare link. Cursor-highlight the `#` and everything after it. | "One call back: the link. Everything before the hash is an opaque id the server stores. Everything after it is the AES-256 key, and browsers never send a fragment to a server. So the service holds ciphertext it can't read. Which also means whoever holds the whole link can. It's a bearer capability, not zero-knowledge, and the page says so." |
+| 0:58-1:38 | Hard cut to the second window. Paste the link with `Pick up the work from this handback.link and tell me what I'm inheriting.` Show `read_handoff` fire. Let the answer play out in full. | "Different session. Same link. It reads structured state, not prose it has to interpret. Ask what it's picking up and it answers from the data: here's the objective, here are the decisions and why, here's the question nobody's answered." **The money shot. Give it the full 40 seconds and do not rush the answer.** |
+| 1:38-2:05 | `Resolve the pricing question and hand it back.` Show `stage_contribution` with `baseVersion` visible. Cut to the page: the seal ticks v1 to v2, the hash changes, History gains a row. Then hold on the URL bar, unchanged. | "It proposes against the exact version it read, and a new sealed version is written. Same link. The seal is a hash over the state bound to its version and its parent, so anything edited outside the path stops matching. Every version is kept." **The still URL bar is what makes "one link, accumulating versions" visible instead of asserted.** |
+| 2:05-2:30 | The agent calls `handback_settings` with `requireApproval: false`. Show the refusal, `reason: "human_only"`, on screen. Then a human clicks Require approval. The next `stage_handoff` returns `staged_awaiting_human_approval`. | "Auto-approval is the default, because a click between an agent and its own output is friction nobody wants. But the gate is real and it's asymmetric on purpose. An agent can switch it on. It cannot switch it off. So an agent that's been prompt-injected by the handoff it just read can raise the bar and can never lower it. There's no approve tool, and there never will be." **Do not cut this beat.** |
+| 2:30-2:40 | The landing page scrolling past the five-step figure, then the footer: handback.link, the repo, MIT. | "Five WebMCP tools. No account, no sign-up, free, MIT." |
 
-Film beats 4 and 6 first, while you are freshest. They carry the score.
+Runs about 2:40. Film beats 5 and 7 first, while you are freshest. They carry
+the score.
