@@ -2,18 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Handback — OG card source (1200x630)</title>
+<title>Handback OG card source (1200x630)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
 <style>
   /* ==========================================================================
-     Handback OG card — 1200x630. Screenshot this to public/og.png.
+     Handback OG card, 1200x630. Screenshot this to public/og.png.
 
      Designed at 1/3 scale first. Slack and X render a 1.91:1 unfurl at roughly
      400px wide, so anything under ~30px on this canvas is illegible in a
-     timeline. Two tiers are built to survive that — the wordmark and the
-     headline — and one tier is deliberate texture: the seal chain reads as
+     timeline. Two tiers are built to survive that, the wordmark and the
+     headline, and one tier is deliberate texture: the seal chain reads as
      "one link, three points on it" at thumbnail size and only resolves into
      real version hashes when somebody opens the image.
 
@@ -67,7 +67,7 @@
 
   .masthead-title { display: flex; align-items: center; gap: 15px; }
 
-  /* The mark is drawn exactly as src/App.tsx draws it — stroked outline, both
+  /* The mark is drawn exactly as src/App.tsx draws it: stroked outline, both
      chrome dots. At 44px the 1.6 stroke resolves to 2.5px, so the outline
      survives here; the favicon's filled simplification is a 16px concern only. */
   .mark { display: block; flex: none; }
@@ -107,13 +107,15 @@
 
   .proof { margin-top: auto; }
 
+  /* Sentence-case mono in verdigris, matching the flow diagram's own loop
+     label on the site. The uppercase tracked amber eyebrow this replaced was
+     the one treatment retired from every other surface, and amber means
+     "awaiting you" anyway, which a sealed chain of finished versions is not. */
   .proof-label {
     font-family: var(--mono);
-    font-size: 24px;
-    font-weight: 500;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--amber);
+    font-size: 25px;
+    font-weight: 400;
+    color: var(--seal);
     margin-bottom: 26px;
   }
 
@@ -159,7 +161,7 @@
   <p class="sub">Encrypted in your browser. The server never sees the key.</p>
 
   <section class="proof">
-    <div class="proof-label">Same link &middot; new version</div>
+    <div class="proof-label">new version, same link</div>
     <div class="chain">
       <span class="seal"><span class="seal-dot"></span><span class="seal-version">v1</span><span>7c1a9e42</span></span>
       <span class="chain-link"></span>
