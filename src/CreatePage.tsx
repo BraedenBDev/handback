@@ -26,8 +26,8 @@ export function CreatePage() {
 
   // The tools read live state through a ref so registration happens once per
   // document (re-registering a name throws) while still seeing current values.
-  const latest = useRef({ created, retentionDays });
-  latest.current = { created, retentionDays };
+  const latest = useRef({ created, retentionDays, draft });
+  latest.current = { created, retentionDays, draft };
 
   useEffect(() => {
     const bridge: WebMcpBridge = {
@@ -69,10 +69,21 @@ export function CreatePage() {
         const receipt = await createFrom(state);
         return receipt ? { status: "created" as const, url: receipt.url, version: receipt.version } : undefined;
       },
-      getReceipt: () =>
-        latest.current.created
-          ? { status: "created", url: latest.current.created.url, version: latest.current.created.version }
-          : { status: "pending" },
+      // Three states, not two. Returning "pending" for a fresh page told an
+      // agent a human was about to click something, when in fact nothing had
+      // been staged at all. A real ChatGPT session hit exactly this: its tab
+      // was reclaimed while it waited for the user, and on reopening the page
+      // any receipt check would have reported a phantom approval request.
+      getReceipt: () => {
+        const created = latest.current.created;
+        if (created) return { status: "created" as const, url: created.url, version: created.version };
+        if (latest.current.draft) return { status: "pending" as const };
+        return {
+          status: "none" as const,
+          message:
+            "This page has not created a handoff. The link lives in page memory, so a reload loses it. Call stage_handoff, and keep the url it returns.",
+        };
+      },
       readHandoff: () => ({ error: "No handoff is open on this page. Open a handoff link to read one." }),
       stageContribution: () => ({
         status: "refused" as const,

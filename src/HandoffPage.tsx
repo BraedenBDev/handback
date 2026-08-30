@@ -100,7 +100,10 @@ export function HandoffPage({ id }: { id: string }) {
       }),
       getReceipt: () => {
         const current = latest.current.doc;
-        return current ? { status: "created", url: location.href, version: current.version } : { status: "pending" };
+        if (current) return { status: "created" as const, url: location.href, version: current.version };
+        // Not "pending": nobody is being asked to approve anything here, the
+        // page just has not finished decrypting yet.
+        return { status: "none" as const, message: "This handoff has not finished decrypting yet. Try again in a moment." };
       },
       readHandoff: (sections: ReadSection[]) => {
         const current = latest.current.doc;

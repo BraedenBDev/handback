@@ -110,6 +110,29 @@ test("an agent stages, a human approves, and only then does a link exist", async
   expect(receipt.url).toContain("#k=");
 });
 
+test("a reloaded page says nothing is here, rather than claiming a human is about to click", async ({ page }) => {
+  // A real ChatGPT session had its tab reclaimed mid-task and reopened the
+  // site. Asking for a receipt then used to answer "pending", which the tool
+  // description defines as waiting for a human. Nobody was waiting.
+  await installWebMcp(page);
+  await page.goto("/");
+  await expect(page.locator("input.link")).toHaveCount(0);
+
+  const cold = await callTool(page, "get_handoff_receipt", {});
+  expect(cold.status).toBe("none");
+  expect(cold.message).toContain("stage_handoff");
+
+  const created = await callTool(page, "stage_handoff", {
+    objective: "Survive a tab reclaim",
+    summary: "Created, then the page goes away underneath it.",
+  });
+  expect(created.status).toBe("created");
+  expect((await callTool(page, "get_handoff_receipt", {})).status).toBe("created");
+
+  await page.reload();
+  expect((await callTool(page, "get_handoff_receipt", {})).status).toBe("none");
+});
+
 test("a second agent reads the handoff, contributes, and a human approves", async ({ page }) => {
   await requireApproval(page);
   await installWebMcp(page);

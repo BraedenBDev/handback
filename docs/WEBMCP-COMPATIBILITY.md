@@ -63,6 +63,21 @@ late.
 `registerTool` is callable. The getter also lives on `Document.prototype`, so
 `Object.hasOwn(document, "modelContext")` returns false and makes a poor probe.
 
+**Tools die with the page, so an agent that pauses can lose them.** Observed in
+the wild rather than in testing: a ChatGPT session opened the site, asked its
+user to confirm before creating anything, and had its tab reclaimed while it
+waited. It reopened the page and carried on, which is the right recovery, but
+the reclaim also erased everything the page was holding in memory. Nothing in
+the spec prevents this and nothing in the page can stop it.
+
+What a page *can* do is not lie about the aftermath. Any tool that reports
+progress needs a distinct answer for "this document has no record of that",
+separate from "something is in flight". `get_handoff_receipt` used to fold both
+into `pending`, so a reloaded page told the agent a human was about to click
+when nobody was; it now returns `none` with a message saying the link lives in
+page memory. The broader rule: an agent should treat a returned identifier as
+the only copy, and a tool description is the right place to say so.
+
 **Status at 2026-08-27:** Chrome origin trial 149 to 156, expiring 2026-11-17.
 Edge origin trial from 150. ChatGPT's in-app browser supported. Brave
 experimental through Leo. Perplexity Comet and Claude in Chrome do *not* consume
