@@ -266,8 +266,8 @@ function SiteFooter() {
       <a href={REPOSITORY_URL} target="_blank" rel="noopener noreferrer">
         <span>github.com/BraedenBDev/handback</span>
       </a>
-      <a href="/privacy.html"><span>Privacy</span></a>
-      <a href="/terms.html"><span>Terms</span></a>
+      <a href="/privacy"><span>Privacy</span></a>
+      <a href="/terms"><span>Terms</span></a>
       <span>MIT</span>
       <span>Built for the WebMCP Challenge</span>
     </footer>
