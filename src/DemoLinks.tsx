@@ -180,18 +180,24 @@ const DEMOS: { id: string; title: string; doc: HandoffDocument }[] = [
 
 export function DemoLinks() {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [closing, setClosing] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const lastFocused = useRef<HTMLElement | null>(null);
   const open = DEMOS.find((d) => d.id === openId) ?? null;
 
+  function requestClose() {
+    setClosing(true);
+  }
+
   useEffect(() => {
     if (!open) return;
+    setClosing(false);
     lastFocused.current = document.activeElement as HTMLElement | null;
     document.body.style.overflow = "hidden";
     panelRef.current?.focus();
 
     function onKeydown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpenId(null);
+      if (event.key === "Escape") requestClose();
     }
     document.addEventListener("keydown", onKeydown);
     return () => {
@@ -201,41 +207,72 @@ export function DemoLinks() {
     };
   }, [open]);
 
+  // Let demo-panel-out / demo-overlay-out play before actually unmounting.
+  // Reduced motion has no visible transition to wait for, so it skips the delay.
+  useEffect(() => {
+    if (!closing) return;
+    const prefersReduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    const id = setTimeout(() => setOpenId(null), prefersReduced ? 0 : 140);
+    return () => clearTimeout(id);
+  }, [closing]);
+
   return (
     <section className="demo-links">
       <h2>See what a handback link actually looks like</h2>
       <p className="sub">Three example handoffs, reusing the real product's own Field/Seal/History markup — click a card to open it.</p>
 
       <div className="demo-cards">
-        {DEMOS.map((demo) => (
-          <button
-            type="button"
-            className="demo-card"
-            key={demo.id}
-            aria-haspopup="dialog"
-            onClick={() => setOpenId(demo.id)}
-          >
-            <span className="demo-card-eyebrow">Handback</span>
-            <span className="demo-card-title">{demo.title}</span>
-            <span className="demo-card-meta">
-              v{demo.doc.version} · updated {new Date(demo.doc.updatedAt).toLocaleDateString()}
-            </span>
-          </button>
-        ))}
+        {DEMOS.map((demo) => {
+          const tasks = demo.doc.state.tasks ?? [];
+          const done = tasks.filter((task) => task.status === "done").length;
+          return (
+            <button
+              type="button"
+              className="demo-card"
+              key={demo.id}
+              aria-haspopup="dialog"
+              onClick={() => setOpenId(demo.id)}
+            >
+              <Seal version={demo.doc.version} hash={demo.doc.contentHash} />
+              <span className="demo-card-title">{demo.title}</span>
+              <span className="demo-card-progress">
+                <span className="demo-card-progress-track" aria-hidden="true">
+                  <span
+                    className="demo-card-progress-fill"
+                    style={{ width: `${tasks.length ? (done / tasks.length) * 100 : 0}%` }}
+                  />
+                </span>
+                <span className="demo-card-progress-label">
+                  {done}/{tasks.length} tasks done · {new Date(demo.doc.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                </span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {open ? (
         <div
-          className="demo-overlay"
+          className={`demo-overlay${closing ? " is-closing" : ""}`}
           onClick={(event) => {
-            if (event.target === event.currentTarget) setOpenId(null);
+            if (event.target === event.currentTarget) requestClose();
           }}
         >
-          <div className="demo-panel" role="dialog" aria-modal="true" aria-label="Example handback link" tabIndex={-1} ref={panelRef}>
-            <button type="button" className="demo-close" aria-label="Close example" onClick={() => setOpenId(null)}>
+          <div
+            className={`demo-panel${closing ? " is-closing" : ""}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Example — ${open.title}`}
+            tabIndex={-1}
+            ref={panelRef}
+          >
+            <button type="button" className="demo-close" aria-label="Close example" onClick={requestClose}>
               &times;
             </button>
-            <p className="demo-note">Example content — not a live link</p>
+            <div className="demo-panel-head">
+              <p className="demo-note">Example content — not a live link</p>
+              <h3 className="demo-panel-title">{open.title}</h3>
+            </div>
             <Seal version={open.doc.version} hash={open.doc.contentHash} />
             <StateView state={open.doc.state} />
             <HistoryView doc={open.doc} />

@@ -59,6 +59,68 @@ const ITEMS: Item[] = [
   },
 ];
 
+const FLOW_STEPS = [
+  { n: "01", label: "You ask", cx: 60 },
+  { n: "02", label: "It drafts", cx: 210 },
+  { n: "03", label: "One link", cx: 360 },
+  { n: "04", label: "They open it", cx: 510 },
+  { n: "05", label: "It continues", cx: 660 },
+];
+
+/**
+ * Purely decorative: the same five-step sequence is already real,
+ * accessible content in the headings below (and their expandable detail),
+ * so this stays out of the accessibility tree rather than making a screen
+ * reader hear a terser version of what's coming up right after it.
+ */
+function ExplainerFlow() {
+  return (
+    <div className="explainer-flow" aria-hidden="true">
+      <svg className="explainer-flow-svg" viewBox="0 0 720 150" focusable="false">
+        <defs>
+          <marker id="flow-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0 L8 4 L0 8 Z" className="explainer-flow-arrowhead" />
+          </marker>
+          <marker id="flow-arrow-loop" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0 L8 4 L0 8 Z" className="explainer-flow-loop-head" />
+          </marker>
+        </defs>
+
+        <path d="M80 40 H190" className="explainer-flow-line" markerEnd="url(#flow-arrow)" />
+        <path d="M230 40 H340" className="explainer-flow-line" markerEnd="url(#flow-arrow)" />
+        <path d="M380 40 H490" className="explainer-flow-line" markerEnd="url(#flow-arrow)" />
+        <path d="M530 40 H640" className="explainer-flow-line" markerEnd="url(#flow-arrow)" />
+
+        <text x="135" y="28" textAnchor="middle" className="explainer-flow-arrow-label">tell your agent</text>
+        <text x="285" y="28" textAnchor="middle" className="explainer-flow-arrow-label">you approve</text>
+        <text x="435" y="28" textAnchor="middle" className="explainer-flow-arrow-label">share the link</text>
+        <text x="585" y="28" textAnchor="middle" className="explainer-flow-arrow-label">picks it up</text>
+
+        <path d="M660 60 C 660 120, 360 120, 360 60" className="explainer-flow-loop" markerEnd="url(#flow-arrow-loop)" />
+        <text x="510" y="138" textAnchor="middle" className="explainer-flow-loop-label">new version, same link</text>
+
+        {FLOW_STEPS.map((step) => (
+          <g key={step.n}>
+            <circle cx={step.cx} cy="40" r="20" className={step.n === "03" ? "explainer-flow-node is-hub" : "explainer-flow-node"} />
+            <text x={step.cx} y="45" textAnchor="middle" className="explainer-flow-node-number">{step.n}</text>
+            <text x={step.cx} y="78" textAnchor="middle" className="explainer-flow-node-label">{step.label}</text>
+          </g>
+        ))}
+      </svg>
+
+      <ol className="explainer-flow-mobile">
+        {FLOW_STEPS.map((step) => (
+          <li key={step.n} className="explainer-flow-mobile-step">
+            <span className="explainer-flow-mobile-n">{step.n}</span>
+            <span>{step.label}</span>
+          </li>
+        ))}
+        <li className="explainer-flow-mobile-loop">↺ new version, same link</li>
+      </ol>
+    </div>
+  );
+}
+
 export function Explainer() {
   const [openIndexes, setOpenIndexes] = useState<Set<number>>(new Set());
 
@@ -77,6 +139,8 @@ export function Explainer() {
       <h2 className="explainer-title" id="explainer-heading">
         How it actually works
       </h2>
+
+      <ExplainerFlow />
 
       <div className="explainer-list">
         {ITEMS.map((item, index) => {
