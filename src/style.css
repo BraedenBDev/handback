@@ -849,10 +849,10 @@ code {
   position: relative;
   display: flex;
   align-items: baseline;
-  gap: 0.7rem;
-  padding: 0.28rem 0;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
   font-family: var(--serif);
-  font-size: 0.95rem;
+  font-size: 1.02rem;
   color: var(--ink);
 }
 .explainer-flow-mobile-n {
@@ -868,23 +868,27 @@ code {
   padding: 0.1rem 0;
 }
 /* the cause, on the connector between one step and the next */
-/* The label lives INSIDE the row's own bottom padding, anchored to the bottom
-   rather than to top:100%. Anchoring to the top edge put it past the padding
-   and straight on top of the next step's text. */
-.explainer-flow-mobile-step[data-edge] { padding-bottom: 1.4rem; }
+/* The cause sits in the row's own bottom padding, anchored to the bottom edge
+   rather than to top:100% (which put it past the padding and on top of the
+   next step's text), and pushed to the RIGHT margin. Left-aligned it stacked
+   every element into a narrow column with half the width empty; against the
+   right edge the steps and their causes alternate across the full measure, and
+   the label reads as sitting on the connector rather than belonging to either
+   step. */
+.explainer-flow-mobile-step[data-edge] { padding-bottom: 1.5rem; }
 .explainer-flow-mobile-step[data-edge]::after {
   content: attr(data-edge);
   position: absolute;
-  left: calc(var(--rail-x) + 0.85rem);
-  bottom: 0.25rem;
+  right: 0;
+  bottom: 0.3rem;
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   line-height: 1;
   color: var(--ink-muted);
 }
 .explainer-flow-mobile-loop {
   position: relative;
-  margin-top: 0.5rem;
+  margin-top: 0.55rem;
   padding-left: 2rem;
   font-family: var(--mono);
   font-size: 0.72rem;
