@@ -44,6 +44,15 @@
     <meta property="og:image:alt" content="Handback. Hand off the work. Get it back intact." />
     <meta name="twitter:card" content="summary_large_image" />
 
+    <!-- Chrome origin trial for WebMCP, so the API is on for ordinary visitors
+         without anyone editing chrome://flags. Registered for
+         https://handback.link, no subdomain matching (www 301s to the apex and
+         never serves HTML). Chrome 149-156, expires 2026-11-17. Served as a
+         header too, in public/_headers, since the header is read before the
+         document parses. Renew at chromestatus origin trials before expiry or
+         the site silently falls back to the manual form. -->
+    <meta http-equiv="origin-trial" content="AupZ+3tQ8SIV1gENXJ/A75jgubJBJWigSb/mo29Ejgb8eibgxQ/pKiVdyXv5XReJsxSwC613z380/02NTB2a+g4AAABNeyJvcmlnaW4iOiJodHRwczovL2hhbmRiYWNrLmxpbms6NDQzIiwiZmVhdHVyZSI6IldlYk1DUCIsImV4cGlyeSI6MTc5NDg3MzYwMH0=" />
+
     <!-- Entity description for answer engines. Handback has no ratings and will
          not invent any, so it is ineligible for Google's Software App rich
          result and stays so deliberately. This earns an unambiguous machine

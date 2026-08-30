@@ -6,6 +6,7 @@
 # run_worker_first is off, so it belongs here instead.
 /*
   Origin-Agent-Cluster: ?1
+  Origin-Trial: AupZ+3tQ8SIV1gENXJ/A75jgubJBJWigSb/mo29Ejgb8eibgxQ/pKiVdyXv5XReJsxSwC613z380/02NTB2a+g4AAABNeyJvcmlnaW4iOiJodHRwczovL2hhbmRiYWNrLmxpbms6NDQzIiwiZmVhdHVyZSI6IldlYk1DUCIsImV4cGlyeSI6MTc5NDg3MzYwMH0=
 
 # Handoff pages carry noindex regardless of how a crawler found the link, so a
 # shared link never turns into a search result. This is the mechanism that
