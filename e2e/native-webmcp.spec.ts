@@ -1,6 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
 
 /**
+ * Turns the approval gate back on before first paint. Auto-approval is the
+ * default now, so any test that exercises the stage-then-approve path has to
+ * ask for the gate explicitly rather than assume it.
+ */
+async function requireApproval(page: Page) {
+  await page.addInitScript(() => localStorage.setItem("handback-auto-approve", "off"));
+}
+
+
+/**
  * The real WebMCP API, with no mock anywhere in sight.
  *
  * Every other spec in this directory installs a stand-in on
@@ -82,6 +92,7 @@ test("the real executeTool wants a RegisteredTool and a JSON string", async ({ p
 });
 
 test("an agent stages, a human approves, and only then is there a link", async ({ page }) => {
+  await requireApproval(page);
   await page.goto("/");
 
   const staged = await call(page, "stage_handoff", {
@@ -102,6 +113,7 @@ test("an agent stages, a human approves, and only then is there a link", async (
 });
 
 test("a second agent reads, proposes, and gets refused on a stale base", async ({ page }) => {
+  await requireApproval(page);
   await page.goto("/");
   await call(page, "stage_handoff", {
     objective: "Native round trip",
@@ -112,6 +124,7 @@ test("a second agent reads, proposes, and gets refused on a stale base", async (
   const url = await page.locator("input.link").inputValue();
 
   const second = await page.context().newPage();
+  await requireApproval(second);
   await second.goto(url);
   await expect(second.getByText("Native round trip")).toBeVisible();
 
@@ -138,6 +151,7 @@ test("a second agent reads, proposes, and gets refused on a stale base", async (
 });
 
 test("a section too large for one response comes back paged, not dropped", async ({ page }) => {
+  await requireApproval(page);
   await page.goto("/");
   const longSummary = "S".repeat(4000);
   await call(page, "stage_handoff", { objective: "Paging", summary: longSummary });

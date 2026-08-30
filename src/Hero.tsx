@@ -174,6 +174,11 @@ export function Hero({ onExit }: { onExit: () => void }) {
 
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    // Phones get a flat, still card. The tilt reads as noise on a small screen,
+    // there is no pointer to drive the parallax half of it, and skipping it
+    // means no rAF work at all on the device least able to spare it. Matches
+    // the `.hero-stage` mobile rules in style.css; keep the two in step.
+    if (window.matchMedia?.("(max-width: 46rem)").matches) return;
 
     function apply() {
       frame.current = null;
@@ -259,24 +264,47 @@ export function Hero({ onExit }: { onExit: () => void }) {
                     <span className={`browser-url${linkLive ? " is-live" : ""}`}>{urlText}</span>
                   </div>
                   <div className={`browser-screen${wiping ? " clearing" : ""}`}>
-                    <div className="chat-stack" key={`${scriptIndex}-${segmentIndex}`}>
-                      {segment.map((turn, i) => {
-                        const isFinal = isLastSegment && i === segment.length - 1;
-                        return (
-                          <div className={`chat-turn ${turn.from}${i < turnCount ? " visible" : ""}`} key={i}>
-                            <div className={`chat-bubble ${turn.from}`}>
-                              <p>{turn.text}</p>
-                              {turn.link ? (
-                                <span
-                                  className={`link-chip${isFinal ? " link-chip-final" : ""}${phase === "clicking" && isFinal ? " clicking" : ""}`}
-                                >
-                                  {turn.link}
-                                </span>
-                              ) : null}
+                    {/*
+                      Every segment of every script renders, stacked into one
+                      grid cell, so the card always reserves the height of the
+                      tallest of them and never resizes. Measured live before
+                      this: segments within a script differed by ~22px and
+                      scripts differed by another ~23px, and each change
+                      resized the card and shoved the rest of the page down.
+                      Inactive segments are visibility:hidden, so they hold
+                      space without reaching the accessibility tree, and only
+                      the running script's closing chip is marked final, which
+                      keeps that a single-match selector.
+                    */}
+                    <div className="chat-stack">
+                      {SCRIPTS.map((s, si) =>
+                        s.segments.map((turns, gi) => {
+                          const active = si === scriptIndex % SCRIPTS.length && gi === segmentIndex;
+                          const closing = si === scriptIndex % SCRIPTS.length && gi === s.segments.length - 1;
+                          return (
+                            <div className={`chat-segment${active ? " active" : ""}`} key={`${si}-${gi}`}>
+                              {turns.map((turn, i) => {
+                                const isFinal = closing && i === turns.length - 1;
+                                const shown = active && i < turnCount;
+                                return (
+                                  <div className={`chat-turn ${turn.from}${shown ? " visible" : ""}`} key={i}>
+                                    <div className={`chat-bubble ${turn.from}`}>
+                                      <p>{turn.text}</p>
+                                      {turn.link ? (
+                                        <span
+                                          className={`link-chip${isFinal ? " link-chip-final" : ""}${phase === "clicking" && isFinal ? " clicking" : ""}`}
+                                        >
+                                          {turn.link}
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        }),
+                      )}
                     </div>
                   </div>
                 </div>

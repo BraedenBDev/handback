@@ -1,25 +1,36 @@
 /**
  * Per-device auto-approval.
  *
- * The approval click is the product's consent boundary, but asking for it on
- * every operation is friction the person already consented to by asking their
- * agent to do the work. This moves consent from per-action to per-device: the
- * human flips it once, deliberately, and this browser stops asking.
+ * Asking for a click on every operation is friction the person already
+ * consented to by asking their agent to do the work, so consent lives
+ * per-device rather than per-action: `stage_handoff` creates immediately and
+ * returns the link in the same call, and `stage_contribution` commits
+ * immediately.
  *
- * It is safe to offer because storage is append-only. Every version's ciphertext
- * is kept, so anything committed automatically is still readable at the previous
- * version and recoverable. Auto-approval removes the prompt, not the record.
+ * The record survives regardless. Storage is append-only, so every version's
+ * ciphertext is kept and anything committed automatically is still readable at
+ * the previous version. Auto-approval removes the prompt, not the record.
  *
- * Off by default. A visitor who has never chosen gets the gate.
+ * **On by default** (changed 2026-08-30, deliberately). A visitor who has never
+ * chosen gets the hands-free flow; turning the gate back on is one click on the
+ * approval strip, and that choice persists per device.
+ *
+ * Understand what this trades away before changing it back or relying on it:
+ * the click was the only thing standing between a prompt-injected agent and
+ * publishing the conversation to a public URL with no human in the loop. The
+ * content is encrypted client-side and the key never reaches the server, but an
+ * agent that can call the tool can also read back the link it just minted.
  */
 const KEY = "handback-auto-approve";
 
 export function readAutoApprove(): boolean {
   try {
-    return localStorage.getItem(KEY) === "on";
+    const stored = localStorage.getItem(KEY);
+    // Only an explicit "off" restores the gate; unset means the new default.
+    return stored !== "off";
   } catch {
     // Private windows and blocked site data throw on access, not just on read.
-    return false;
+    return true;
   }
 }
 

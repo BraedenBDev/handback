@@ -144,27 +144,28 @@ test.describe("responsive", () => {
 });
 
 test.describe("approval mode", () => {
-  test("requires a click by default", async ({ page }) => {
+  test("auto-approves by default", async ({ page }) => {
     await page.goto("/");
+    await expect(page.getByText("Auto-approving.")).toBeVisible();
+  });
+
+  test("the gate can be turned on and is remembered across reloads", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Require approval" }).click();
     await expect(page.getByText("Approval required.")).toBeVisible();
-    await page.getByLabel("Objective").fill("Gated by default");
-    await page.getByLabel("Where the work stands").fill("Nobody opted into anything.");
+
+    await page.reload();
+    await expect(page.getByText("Approval required.")).toBeVisible();
+
+    // And it actually gates: staged, not created, no link until someone clicks.
+    await page.getByLabel("Objective").fill("Gated on request");
+    await page.getByLabel("Where the work stands").fill("Someone asked to be asked.");
     await page.getByRole("button", { name: "Stage handoff" }).click();
-    // Staged, not created: no link until someone clicks.
     await expect(page.getByRole("button", { name: "Approve and create" })).toBeVisible();
     await expect(page.locator("input.link")).toHaveCount(0);
   });
 
-  test("stops asking on this device once switched, and remembers across reloads", async ({ page }) => {
-    await page.goto("/");
-    await page.getByRole("button", { name: "Stop asking on this device" }).click();
-    await expect(page.getByText("Auto-approving.")).toBeVisible();
-
-    await page.reload();
-    await expect(page.getByText("Auto-approving.")).toBeVisible();
-  });
-
-  test("an agent call creates without a click once auto-approval is on", async ({ page }) => {
+  test("an agent call creates with no click at all, first visit", async ({ page }) => {
     await page.addInitScript(() => {
       const registered: any[] = [];
       Object.defineProperty(document, "modelContext", {
@@ -178,14 +179,13 @@ test.describe("approval mode", () => {
       });
     });
     await page.goto("/");
-    await page.getByRole("button", { name: "Stop asking on this device" }).click();
-
+    // Deliberately no toggling: this is the out-of-the-box path now.
     const result = await page.evaluate(async () => {
       const mc = (document as any).modelContext;
       const tools = await mc.getTools();
       const raw = JSON.parse(await mc.executeTool(tools.find((t: any) => t.name === "stage_handoff"), JSON.stringify({
         objective: "Created with no click",
-        summary: "Auto-approval was switched on first.",
+        summary: "Nobody touched the approval strip.",
       })));
       return raw.structuredContent ?? JSON.parse(raw.content[0].text);
     });
@@ -196,16 +196,12 @@ test.describe("approval mode", () => {
     await expect(page.locator("input.link")).toBeVisible();
   });
 
-  test("switching back restores the gate", async ({ page }) => {
+  test("switching the gate on and back off returns to hands-free", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Stop asking on this device" }).click();
     await page.getByRole("button", { name: "Require approval" }).click();
     await expect(page.getByText("Approval required.")).toBeVisible();
-
-    await page.getByLabel("Objective").fill("Gated again");
-    await page.getByLabel("Where the work stands").fill("Back to staging.");
-    await page.getByRole("button", { name: "Stage handoff" }).click();
-    await expect(page.getByRole("button", { name: "Approve and create" })).toBeVisible();
+    await page.getByRole("button", { name: "Stop asking on this device" }).click();
+    await expect(page.getByText("Auto-approving.")).toBeVisible();
   });
 });
 

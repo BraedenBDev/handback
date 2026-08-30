@@ -8,27 +8,29 @@ afterEach(() => {
 });
 
 describe("auto-approval preference", () => {
-  it("is off for anyone who has never chosen", () => {
-    expect(readAutoApprove()).toBe(false);
+  it("is on for anyone who has never chosen", () => {
+    expect(readAutoApprove()).toBe(true);
   });
 
-  it("persists a choice and can be turned back off", () => {
-    writeAutoApprove(true);
-    expect(readAutoApprove()).toBe(true);
+  it("persists a choice and can be turned back on", () => {
     writeAutoApprove(false);
     expect(readAutoApprove()).toBe(false);
+    writeAutoApprove(true);
+    expect(readAutoApprove()).toBe(true);
   });
 
-  it("treats an unrecognised stored value as off, failing closed", () => {
+  it("only an explicit off restores the gate", () => {
     localStorage.setItem("handback-auto-approve", "maybe");
+    expect(readAutoApprove()).toBe(true);
+    localStorage.setItem("handback-auto-approve", "off");
     expect(readAutoApprove()).toBe(false);
   });
 
-  it("stays off when storage throws, as it does in a private window", () => {
+  it("stays on when storage throws, as it does in a private window", () => {
     vi.spyOn(localStorage, "getItem").mockImplementation(() => {
       throw new Error("The operation is insecure.");
     });
-    expect(readAutoApprove()).toBe(false);
+    expect(readAutoApprove()).toBe(true);
   });
 
   it("does not throw when storage refuses a write", () => {

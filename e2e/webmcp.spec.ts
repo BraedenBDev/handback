@@ -15,6 +15,15 @@ import { expect, test, type Page } from "@playwright/test";
  * flattened into a useless generic message — which is why our tools return
  * refusals instead of throwing.
  */
+/**
+ * Turns the approval gate back on before first paint. Auto-approval is the
+ * default now, so any test that exercises the stage-then-approve path has to
+ * ask for the gate explicitly rather than assume it.
+ */
+async function requireApproval(page: Page) {
+  await page.addInitScript(() => localStorage.setItem("handback-auto-approve", "off"));
+}
+
 async function installWebMcp(page: Page) {
   await page.addInitScript(() => {
     const registered: any[] = [];
@@ -78,6 +87,7 @@ test("registers exactly the four staging tools, and no approve or commit tool", 
 });
 
 test("an agent stages, a human approves, and only then does a link exist", async ({ page }) => {
+  await requireApproval(page);
   await installWebMcp(page);
   await page.goto("/");
 
@@ -101,6 +111,7 @@ test("an agent stages, a human approves, and only then does a link exist", async
 });
 
 test("a second agent reads the handoff, contributes, and a human approves", async ({ page }) => {
+  await requireApproval(page);
   await installWebMcp(page);
   await page.goto("/");
   await callTool(page, "stage_handoff", {
@@ -113,6 +124,7 @@ test("a second agent reads the handoff, contributes, and a human approves", asyn
 
   // A different page, holding nothing but the link.
   const second = await page.context().newPage();
+  await requireApproval(second);
   await installWebMcp(second);
   await second.goto(url);
   await expect(second.getByText("Round trip")).toBeVisible();
@@ -143,6 +155,7 @@ test("a second agent reads the handoff, contributes, and a human approves", asyn
 
   // The ORIGINAL link still opens. This is the regression that sank the first build.
   const third = await page.context().newPage();
+  await requireApproval(third);
   await installWebMcp(third);
   await third.goto(url);
   await expect(third.locator(".seal .seal-version")).toHaveText("v2");

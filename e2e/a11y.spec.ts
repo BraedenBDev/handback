@@ -8,6 +8,15 @@ import { expect, test, type Page } from "@playwright/test";
  * looks fine and fails 4.5:1.
  */
 
+/**
+ * Turns the approval gate back on before first paint. Auto-approval is the
+ * default now, so any test that exercises the stage-then-approve path has to
+ * ask for the gate explicitly rather than assume it.
+ */
+async function requireApproval(page: Page) {
+  await page.addInitScript(() => localStorage.setItem("handback-auto-approve", "off"));
+}
+
 async function installWebMcp(page: Page) {
   await page.addInitScript(() => {
     const registered: any[] = [];
@@ -61,6 +70,7 @@ for (const theme of ["light", "dark"] as const) {
 
   test(`staged draft has no accessibility violations (${theme})`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: theme });
+    await requireApproval(page);
     await installWebMcp(page);
     await page.goto("/");
     await page.evaluate(async () => {

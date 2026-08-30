@@ -64,16 +64,14 @@ You have been working with an agent. You say:
 
 > Hand this off to Handback.
 
-It opens the page, packages what matters, and shows you a draft: the objective,
-what was decided and why, the constraints, what is still open. Nothing has been
-saved. You read it, cut the line you would rather not share, and click
-**Approve and create**.
+It opens the page, packages what matters, and hands your agent the link in the
+same call. Nothing to click.
 
 You get one link. That is the whole artifact. Close everything else.
 
-Before you approve, you choose how long it should live: 24 hours, 7 days, 30
-days, or never. Seven days is the default. The clock runs from the last change
-rather than from creation, so it resets each time someone contributes.
+It lives seven days by default, and you can pick 24 hours, 30 days or never on
+the page. The clock runs from the last change rather than from creation, so it
+resets each time someone contributes.
 
 Send it to a friend, or keep it for yourself and open it next month. Whoever
 opens it points their agent at it and asks what they are picking up. The agent
@@ -87,17 +85,24 @@ reopening the same link later shows you what happened while you were away.
 When a handoff does expire, the ciphertext is deleted. Nobody can recover it,
 including us: the server never held the key. Download a copy if it matters.
 
-If clicking twice is friction you do not want, there is a switch. Flip it once
-and that browser stops asking.
+If you would rather see every handoff before it is written, there is a switch.
+Flip it once and that browser starts asking.
 
 ## Approval
 
-Your agent stages. You commit with a click.
+Your agent creates. You can ask to be asked.
 
-Per-device auto-approval trades the prompt for a switch. Flip it once and this
-browser stops asking: `stage_handoff` creates and hands your agent the link in
-the same call, `stage_contribution` writes the new version. Consent moves from
-per-action to per-device, the same shape as an "always allow" permission.
+Auto-approval is the default: `stage_handoff` creates and hands your agent the
+link in the same call, and `stage_contribution` writes the new version, with no
+click in either path. The approval strip at the top of the page turns the gate
+back on for that browser, and the choice persists per device.
+
+Know what the default costs you. The click was the only thing between an agent
+and a public URL, so an agent that has been prompt-injected can mint a link
+carrying your conversation without anyone seeing it first. The content is
+encrypted before it leaves the browser and the key never reaches the server, but
+whoever holds the whole link can read it, and the agent that created it holds
+the whole link. Turn the gate on for anything you would not publish.
 
 That trade only works because storage appends. Every version's ciphertext
 survives, so anything written without a click is still readable at the version

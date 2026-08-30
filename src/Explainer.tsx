@@ -96,8 +96,22 @@ function ExplainerFlow() {
         <text x="435" y="28" textAnchor="middle" className="explainer-flow-arrow-label">share the link</text>
         <text x="585" y="28" textAnchor="middle" className="explainer-flow-arrow-label">picks it up</text>
 
-        <path d="M660 60 C 660 120, 360 120, 360 60" className="explainer-flow-loop" markerEnd="url(#flow-arrow-loop)" />
-        <text x="510" y="138" textAnchor="middle" className="explainer-flow-loop-label">new version, same link</text>
+        {/*
+          Orthogonal, and routed clear of every label. Measured extents drove
+          each turn: node labels occupy y 67-83, "It continues" ends at x 691,
+          "One link" spans x 337-382, and the loop's own caption starts at
+          y 122. So: leave node 05 sideways at centre height, drop at x=702
+          (right of "It continues"), run back at y=112 (below every node label,
+          above the caption), rise at x=318 (left of "One link" rather than
+          through it, which is what the old curve did), and enter node 03 at
+          y=52 on its lower-left arc.
+        */}
+        <path
+          d="M 680 40 H 702 V 112 H 318 V 52 H 344"
+          className="explainer-flow-loop"
+          markerEnd="url(#flow-arrow-loop)"
+        />
+        <text x="510" y="132" textAnchor="middle" className="explainer-flow-loop-label">new version, same link</text>
 
         {FLOW_STEPS.map((step) => (
           <g key={step.n}>
@@ -122,7 +136,10 @@ function ExplainerFlow() {
 }
 
 export function Explainer() {
-  const [openIndexes, setOpenIndexes] = useState<Set<number>>(new Set());
+  // 01 opens on load: a section titled "How it actually works" that contains
+  // no words about how it works until you tap something is not a section, it
+  // is a table of contents. It also breaks the uniform-row rhythm.
+  const [openIndexes, setOpenIndexes] = useState<Set<number>>(() => new Set([0]));
 
   function toggle(index: number) {
     setOpenIndexes((prev) => {
@@ -167,11 +184,11 @@ export function Explainer() {
               <div
                 className={`explainer-panel${isOpen ? " is-open" : ""}`}
                 id={panelId}
-                role="region"
-                aria-labelledby={headerId}
                 aria-hidden={!isOpen}
               >
-                <div className="explainer-panel-inner">{item.body}</div>
+                <div className="explainer-panel-inner">
+                  <div className="explainer-panel-body">{item.body}</div>
+                </div>
               </div>
             </div>
           );
