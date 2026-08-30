@@ -9,6 +9,8 @@ import { DEFAULT_RETENTION_DAYS, RETENTION_CHOICES, describeExpiry } from "../sh
 import { readAutoApprove } from "./auto-approve.ts";
 import { ApprovalMode, ErrorNote, Field, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
 import { Hero } from "./Hero.tsx";
+import { DemoLinks } from "./DemoLinks.tsx";
+import { Explainer } from "./Explainer.tsx";
 
 export function CreatePage() {
   const [draft, setDraft] = useState<HandoffState | null>(null);
@@ -219,6 +221,12 @@ export function CreatePage() {
         <ManualDraftForm onStage={setDraft} onImport={importFile} />
       )}
       </div>
+      {showHero ? (
+        <>
+          <DemoLinks />
+          <Explainer />
+        </>
+      ) : null}
     </main>
   );
 }

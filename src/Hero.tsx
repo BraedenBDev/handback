@@ -1,24 +1,42 @@
 import { useEffect, useRef, useState } from "react";
 
 type Turn = { from: "user" | "agent"; text: string; link?: string };
+type Script = { provider: string; turns: Turn[] };
 
 /**
- * Two short, plausible tasks — not the same demo every loop, so it reads
- * as "this works for whatever you're doing" rather than "this one demo."
+ * Three short, plausible tasks — one per provider the README names as
+ * unable to open each other's work — so the URL bar's placeholder (before
+ * a link resolves) names the actual agent instead of a generic "new
+ * session," and the loop demonstrates all three, not just two.
  */
-const SCRIPTS: Turn[][] = [
-  [
-    { from: "user", text: "Research dinosaurs for me." },
-    { from: "agent", text: "Done — three key eras, a shortlist of sources, and one open question about feathered species." },
-    { from: "user", text: "Save this to Handback." },
-    { from: "agent", text: "Here's your link:", link: "handback.link/h/aB3xY9Qz…#••••••" },
-  ],
-  [
-    { from: "user", text: "Summarize this thread for the team." },
-    { from: "agent", text: "Done — objective, decisions, and two open questions, written up." },
-    { from: "user", text: "Save this to Handback." },
-    { from: "agent", text: "Here's your link:", link: "handback.link/h/8k2NpQr7…#••••••" },
-  ],
+const SCRIPTS: Script[] = [
+  {
+    provider: "Claude",
+    turns: [
+      { from: "user", text: "Research dinosaurs for me." },
+      { from: "agent", text: "Done — three key eras, a shortlist of sources, and one open question about feathered species." },
+      { from: "user", text: "Save this to Handback." },
+      { from: "agent", text: "Here's your link:", link: "handback.link/h/aB3xY9Qz…#••••••" },
+    ],
+  },
+  {
+    provider: "ChatGPT",
+    turns: [
+      { from: "user", text: "Summarize this thread for the team." },
+      { from: "agent", text: "Done — objective, decisions, and two open questions, written up." },
+      { from: "user", text: "Save this to Handback." },
+      { from: "agent", text: "Here's your link:", link: "handback.link/h/8k2NpQr7…#••••••" },
+    ],
+  },
+  {
+    provider: "Gemini",
+    turns: [
+      { from: "user", text: "Sketch pricing page copy." },
+      { from: "agent", text: "Done — three tiers drafted, with a one-line pitch for each." },
+      { from: "user", text: "Save this to Handback." },
+      { from: "agent", text: "Here's your link:", link: "handback.link/h/qW4vLm2N…#••••••" },
+    ],
+  },
 ];
 
 const TURN_DELAY_MS = 1300;
@@ -51,7 +69,7 @@ export function Hero({ onExit }: { onExit: () => void }) {
   const [turnCount, setTurnCount] = useState(0);
   const [phase, setPhase] = useState<Phase>("typing");
   const script = SCRIPTS[scriptIndex % SCRIPTS.length]!;
-  const lastTurn = script[script.length - 1]!;
+  const lastTurn = script.turns[script.turns.length - 1]!;
 
   useEffect(() => {
     const node = stageRef.current;
@@ -72,17 +90,17 @@ export function Hero({ onExit }: { onExit: () => void }) {
   // resolved and static.
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      setTurnCount(script.length);
+      setTurnCount(script.turns.length);
       setPhase("clicked");
       return;
     }
 
     let timer: number;
 
-    if (phase === "typing" && turnCount < script.length) {
+    if (phase === "typing" && turnCount < script.turns.length) {
       const delay = turnCount === 0 ? FIRST_TURN_DELAY_MS : TURN_DELAY_MS;
       timer = window.setTimeout(() => setTurnCount((n) => n + 1), delay);
-    } else if (phase === "typing" && turnCount >= script.length) {
+    } else if (phase === "typing" && turnCount >= script.turns.length) {
       timer = window.setTimeout(() => setPhase("clicking"), CLICK_PAUSE_MS);
     } else if (phase === "clicking") {
       timer = window.setTimeout(() => setPhase("clicked"), CLICK_ANIM_MS);
@@ -97,7 +115,7 @@ export function Hero({ onExit }: { onExit: () => void }) {
     }
 
     return () => window.clearTimeout(timer);
-  }, [phase, turnCount, scriptIndex, script.length]);
+  }, [phase, turnCount, scriptIndex, script.turns.length]);
 
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
@@ -156,8 +174,8 @@ export function Hero({ onExit }: { onExit: () => void }) {
   }, []);
 
   const linkLive = phase === "clicked" || phase === "clearing";
-  const urlText = linkLive ? lastTurn.link ?? "" : "new session";
-  const visibleTurns = script.slice(0, turnCount);
+  const urlText = linkLive ? lastTurn.link ?? "" : script.provider;
+  const visibleTurns = script.turns.slice(0, turnCount);
 
   return (
     <section className="hero-stage" ref={stageRef}>
