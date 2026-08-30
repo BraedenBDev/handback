@@ -104,11 +104,9 @@ encrypted before it leaves the browser and the key never reaches the server, but
 whoever holds the whole link can read it, and the agent that created it holds
 the whole link. Turn the gate on for anything you would not publish.
 
-That trade only works because storage appends. Every version's ciphertext
-survives, so anything written without a click is still readable at the version
-before it. You lose the prompt, not the record.
-
-Off by default. A visitor who has never chosen gets the gate.
+The record survives either way, because storage appends. Every version's
+ciphertext is kept, so anything written without a click is still readable at the
+version before it. You lose the prompt, not the record.
 
 ## The agent-callable surface
 
@@ -116,16 +114,19 @@ Four tools, registered on the page through `document.modelContext.registerTool`:
 
 | Tool | Does | Never does |
 |---|---|---|
-| `stage_handoff` | Fills the visible draft on screen | Save, encrypt, publish |
-| `get_handoff_receipt` | Reports pending, or the link once approved | Create anything |
+| `stage_handoff` | Saves and returns the link in one call | Reveal the key |
+| `get_handoff_receipt` | Reports pending, or the link once created | Create anything |
 | `read_handoff` | Returns requested sections of the open handoff | Reveal the key |
-| `stage_contribution` | Stages a proposed diff against a base version | Commit it |
+| `stage_contribution` | Writes a new sealed version against a base version | Delete anything |
 
-**No `approve_*` or `commit_*` tool exists.** Creating and approving are buttons
-a person clicks. That click is the whole consent boundary, and a tool an agent
-could call would dissolve it. `readOnlyHint` and `untrustedContentHint` are hints
-to the model, not enforcement, so treat them as documentation rather than a
-security control.
+With the gate switched on, the first and fourth stage instead of writing, and
+return `staged_awaiting_human_approval` until a person clicks.
+
+**No `approve_*` or `commit_*` tool exists**, and none will. Approving is a
+button, so switching the gate on is always enough to put a person back in the
+loop; there is no tool call that can turn it off. `readOnlyHint` and
+`untrustedContentHint` are hints to the model, not enforcement, so treat them as
+documentation rather than a security control.
 
 ## Running it
 
