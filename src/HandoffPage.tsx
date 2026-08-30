@@ -78,6 +78,11 @@ export function HandoffPage({ id }: { id: string }) {
               "The approval gate can only be switched off by a person, using the control on this page. A tool call can switch it on.",
           };
         }
+        // Applied BEFORE the retention refusal below. A call carrying both
+        // fields used to hit that refusal first and drop this silently, so an
+        // agent raising the safety bar got told "wrong_page" and the gate never
+        // moved. Turning the gate on must never be the thing that gets dropped.
+        if (next.requireApproval === true) writeAutoApprove(false);
         if (next.retentionDays !== undefined) {
           return {
             status: "refused" as const,
@@ -86,7 +91,6 @@ export function HandoffPage({ id }: { id: string }) {
               "Retention belongs to the handoff and was set when it was created. This page contributes to an existing one; the window slides on each new version rather than being chosen again.",
           };
         }
-        if (next.requireApproval === true) writeAutoApprove(false);
         return { requireApproval: !readAutoApprove(), retentionDays: null };
       },
       stageHandoff: () => ({

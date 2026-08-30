@@ -30,9 +30,11 @@ Handback is that, for work done with agents.
 - **Any agent can pick it up.** Whoever built it. The page exposes its tools
   through WebMCP, so a second agent reads structured state rather than
   re-deriving it from prose.
-- **Nothing gets indexed.** Handoff pages send `X-Robots-Tag: noindex`,
-  `robots.txt` disallows them, and the id is 128 random bits. A crawler cannot
-  reach one it was not handed.
+- **Nothing gets indexed.** Handoff pages send `X-Robots-Tag: noindex`, and the
+  id is 128 random bits, so a crawler cannot reach one it was not handed.
+  `robots.txt` deliberately does *not* disallow them: a crawler blocked from
+  fetching never reads the header, and the URL stays eligible for a bare result.
+  Letting it fetch costs nothing, since every route returns the same empty shell.
 - **It does not hang around forever.** Handoffs expire seven days after the last
   change by default, and you pick the window when you create one. The countdown
   slides, so something still being worked on does not vanish under whoever is
@@ -110,7 +112,7 @@ version before it. You lose the prompt, not the record.
 
 ## The agent-callable surface
 
-Four tools, registered on the page through `document.modelContext.registerTool`:
+Five tools, registered on the page through `document.modelContext.registerTool`:
 
 | Tool | Does | Never does |
 |---|---|---|
@@ -211,7 +213,7 @@ shared/schema.ts     JSON Schema, one source of truth for WebMCP and validation
 shared/validate.ts   The subset validator that walks it, replacing Ajv
 src/hash.ts          Content seals and the parent chain
 src/crypto.ts        AES-256-GCM, one key per handoff, reused across versions
-src/webmcp.ts        The four tool registrations
+src/webmcp.ts        The five tool registrations
 src/contribution.ts  Pure apply-a-contribution logic
 worker/index.ts      The Cloudflare Worker: API and asset serving
 migrations/          Schema, applied in order to a fresh database

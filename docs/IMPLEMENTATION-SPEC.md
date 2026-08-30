@@ -1,4 +1,11 @@
-# Handback MVP — Implementation Spec
+# Handback MVP: Implementation Spec
+
+> **Historical.** This is the pre-build spec, kept for the reasoning behind the
+> settled decisions. It describes the MVP as scoped, not the product as shipped.
+> Two things have since changed deliberately: auto-approval is on by default, so
+> the write tools create rather than stage unless a device turns the gate on;
+> and a fifth tool, `handback_settings`, was added. README.md and SECURITY.md
+> describe the shipped behaviour.
 
 ## Settled product decision
 
@@ -62,6 +69,6 @@ This stack keeps the security boundary inspectable and produces a real local wor
 - Production build succeeds.
 - Tests cover encryption round-trip, wrong-key failure, schema rejection, contribution application, optimistic version conflict, and ciphertext-only persistence.
 - Browser smoke test creates, reopens, decrypts, contributes, approves, and exports.
-- Source contains exactly the four agent-callable WebMCP tools above.
+- Source contains exactly the agent-callable WebMCP tools above. (Shipped: five, the fifth being `handback_settings`.)
 - No plaintext from a known fixture appears in the SQLite database.
 - Human approval controls are normal page buttons and are not callable through WebMCP.

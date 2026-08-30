@@ -136,7 +136,10 @@ html {
   /* the hero breaks out to full-bleed via 100vw, which is a few px wider
      than the scrollbar-adjusted viewport in most browsers. html, not body,
      is the actual scrolling element in standards mode. */
-  overflow-x: hidden;
+  /* `clip`, not `hidden`. On the root element `hidden` propagates to the
+     viewport and leaves html itself scrollable, so the page still slid 8px
+     sideways at phone widths. `clip` actually clips. */
+  overflow-x: clip;
 }
 
 body {
@@ -780,7 +783,7 @@ code {
 .demo-close:hover, .demo-close:focus-visible { color: var(--ink); border-color: var(--rule-strong); }
 .demo-close:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .demo-panel-head { margin: 0 0 1.4rem; }
-.demo-note { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); margin: 0 0 0.35rem; }
+.demo-note { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-muted); margin: 0 0 0.35rem; }
 .demo-panel-title { font-family: var(--serif); font-size: 1.3rem; font-weight: 600; line-height: 1.3; margin: 0; color: var(--ink); }
 
 @media (prefers-reduced-motion: no-preference) {

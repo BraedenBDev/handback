@@ -9,7 +9,7 @@
  *   public/apple-touch-icon.png    180x180 opaque, from public/apple-touch-icon-source.svg
  *   public/favicon-32.png / -16.png  raster fallback for browsers without SVG favicons
  */
-import { chromium } from "/Users/Braeden-ai/Developer/handback/node_modules/playwright/index.mjs";
+import { chromium } from "playwright";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 import { readFile } from "node:fs/promises";

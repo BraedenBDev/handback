@@ -296,8 +296,10 @@ export function ToolStatus({ available }: { available: boolean }) {
 
 /**
  * The consent mode, always visible so nobody is unsure which one they are in.
- * Off by default; the switch is the human's single deliberate act of consent,
- * after which this device stops asking per operation.
+ * On by default since 2026-08-30, so the switch is now the act of RESTORING the
+ * gate rather than of granting consent: flip it and this device starts asking
+ * again, per operation. An agent can flip it on through `handback_settings` and
+ * is refused when it tries to flip it off.
  */
 export function ApprovalMode({ onChange }: { onChange?: (on: boolean) => void }) {
   const [on, setOn] = useState(readAutoApprove);

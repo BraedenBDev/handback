@@ -1,11 +1,21 @@
 /**
- * The WebMCP surface: exactly four agent-callable tools.
+ * The WebMCP surface: five agent-callable tools.
  *
- * Every one of them is a STAGING tool. None of them writes to the server, and
- * none of them commits anything. Creation and contribution approval are
- * ordinary buttons in the page, because that human click is the entire consent
- * boundary of this product. Annotations like readOnlyHint are hints to the
- * agent, not enforcement, so they are documentation here and nothing more.
+ * `stage_handoff` and `stage_contribution` WRITE by default. Auto-approval has
+ * been the default since 2026-08-30, so they create and commit in the same call
+ * and hand the agent a link. They only stage, and return
+ * `staged_awaiting_human_approval`, when the device has the approval gate
+ * switched on. `get_handoff_receipt` and `read_handoff` are reads.
+ *
+ * `handback_settings` reads settings and writes the retention window, and is
+ * deliberately asymmetric about the gate: it can switch approval ON, and
+ * refuses `requireApproval: false` with reason "human_only". That asymmetry is
+ * the consent boundary now. An agent on the page, including one prompt-injected
+ * by the handoff it just read, can raise the bar and can never lower it; only a
+ * person can, with the button. There is still no approve or commit tool.
+ *
+ * Annotations like readOnlyHint are hints to the agent, not enforcement, so
+ * they are documentation here and nothing more.
  *
  * Tools are registered against the document lifetime and torn down through an
  * AbortController. Re-registering the same name throws, so this must run once
