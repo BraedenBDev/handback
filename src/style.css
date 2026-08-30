@@ -583,8 +583,8 @@ code {
 .browser-screen.clearing { opacity: 0; }
 
 .chat-stack { display: flex; flex-direction: column; gap: 0.85rem; padding: 2rem 2.2rem; }
-.chat-turn { display: flex; opacity: 0; transform: translateY(8px); transition: opacity 320ms ease, transform 320ms ease; }
-.chat-turn.visible { opacity: 1; transform: translateY(0); }
+.chat-turn { display: flex; visibility: hidden; opacity: 0; transform: translateY(8px); transition: opacity 320ms ease, transform 320ms ease; }
+.chat-turn.visible { visibility: visible; opacity: 1; transform: translateY(0); }
 .chat-turn.user { justify-content: flex-end; }
 .chat-turn.agent { justify-content: flex-start; }
 .chat-bubble { max-width: 82%; border-radius: 14px; padding: 0.75rem 1rem; }

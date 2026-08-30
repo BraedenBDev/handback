@@ -175,7 +175,6 @@ export function Hero({ onExit }: { onExit: () => void }) {
 
   const linkLive = phase === "clicked" || phase === "clearing";
   const urlText = linkLive ? lastTurn.link ?? "" : script.provider;
-  const visibleTurns = script.turns.slice(0, turnCount);
 
   return (
     <section className="hero-stage" ref={stageRef}>
@@ -205,8 +204,8 @@ export function Hero({ onExit }: { onExit: () => void }) {
                   </div>
                   <div className={`browser-screen${phase === "clearing" ? " clearing" : ""}`}>
                     <div className="chat-stack">
-                      {visibleTurns.map((turn, i) => (
-                        <div className={`chat-turn ${turn.from} visible`} key={i}>
+                      {script.turns.map((turn, i) => (
+                        <div className={`chat-turn ${turn.from}${i < turnCount ? " visible" : ""}`} key={i}>
                           <div className={`chat-bubble ${turn.from}`}>
                             <p>{turn.text}</p>
                             {turn.link ? (
