@@ -520,9 +520,10 @@ code {
 /* --- the hero object — a floating browser window, not a device. A tall
    rounded object read as a phone regardless of what it was labeled;
    landscape + a real chrome bar disambiguates itself by silhouette alone.
-   Tilt (idle drift, pointer, scroll parallax) lives on .window-tilt, same
-   mechanism as before, driven from Hero.tsx. The carousel inside cycles
-   through the providers the README itself names. ------------------------ */
+   Tilt (idle drift, pointer, scroll parallax) lives on .window-tilt.
+   Inside, a scripted two-turn dialogue plays out (see SCRIPTS in
+   Hero.tsx) ending in a link chip that "gets clicked" — no provider
+   carousel, no object metaphor to decode. --------------------------- */
 
 .window-perspective { perspective: 2400px; width: 100%; }
 .window-orbit { transform-style: preserve-3d; animation: window-drift 10s ease-in-out infinite; }
