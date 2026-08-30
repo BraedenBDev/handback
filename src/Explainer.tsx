@@ -59,11 +59,16 @@ const ITEMS: Item[] = [
   },
 ];
 
+/** `edge` is the cause that moves you to the NEXT step, so the last one has
+ *  none. The wide figure paints these on its arrows; the mobile rail paints
+ *  them on the connector between rows, which is why they live on the data
+ *  rather than being hardcoded beside the SVG paths where the rail could not
+ *  reach them. */
 const FLOW_STEPS = [
-  { n: "01", label: "You ask", cx: 60 },
-  { n: "02", label: "It drafts", cx: 210 },
-  { n: "03", label: "One link", cx: 360 },
-  { n: "04", label: "They open it", cx: 510 },
+  { n: "01", label: "You ask", cx: 60, edge: "tell your agent" },
+  { n: "02", label: "It drafts", cx: 210, edge: "you approve" },
+  { n: "03", label: "One link", cx: 360, edge: "share the link" },
+  { n: "04", label: "They open it", cx: 510, edge: "picks it up" },
   { n: "05", label: "It continues", cx: 660 },
 ];
 
@@ -124,12 +129,12 @@ function ExplainerFlow() {
 
       <ol className="explainer-flow-mobile">
         {FLOW_STEPS.map((step) => (
-          <li key={step.n} className="explainer-flow-mobile-step">
+          <li key={step.n} className="explainer-flow-mobile-step" data-edge={step.edge}>
             <span className="explainer-flow-mobile-n">{step.n}</span>
             <span>{step.label}</span>
           </li>
         ))}
-        <li className="explainer-flow-mobile-loop">↺ new version, same link</li>
+        <li className="explainer-flow-mobile-loop">new version, same link</li>
       </ol>
     </div>
   );

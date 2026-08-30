@@ -58,6 +58,11 @@
   --radius: 10px;
   --radius-inner: 6px;
   --gutter: 8.5rem;
+  /* The single horizontal page gutter. Every text element on the page starts
+     at this distance from the viewport edge: the hero, the sections below it,
+     and the content of the card, which breaks out of main's padding on mobile
+     so its inner edge lands here too rather than one gutter further in. */
+  --gutter-x: 1.5rem;
 
   --enter: 180ms cubic-bezier(0.2, 0.7, 0.3, 1);
   --enter-modal: 240ms cubic-bezier(0.2, 0.7, 0.3, 1);
@@ -147,7 +152,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-main { max-width: 56rem; margin: 0 auto; padding: 0 1.5rem 6rem; }
+main { max-width: 56rem; margin: 0 auto; padding: 0 var(--gutter-x) 6rem; }
 
 /* --- masthead ------------------------------------------------------------ */
 
@@ -198,7 +203,19 @@ main { max-width: 56rem; margin: 0 auto; padding: 0 1.5rem 6rem; }
 .content-card > *:first-child { margin-top: 0; }
 .content-card > *:last-child { margin-bottom: 0; }
 @media (max-width: 46rem) {
-  .content-card { padding: 1.5rem 1.15rem 2rem; border-radius: var(--radius-inner); }
+  :root { --gutter-x: 1.25rem; }
+  /* Full-bleed on a phone. Nested padding used to put card content a whole
+     gutter further in than the sections below it, so the page had three
+     different left edges. Cancelling main's padding and re-applying the gutter
+     inside gives the card content the same edge as everything else. */
+  .content-card {
+    margin-left: calc(var(--gutter-x) * -1);
+    margin-right: calc(var(--gutter-x) * -1);
+    padding: 1.5rem var(--gutter-x) 2rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
 }
 
 /* --- the seal ------------------------------------------------------------ */
@@ -638,7 +655,7 @@ code {
   justify-content: center;
   gap: clamp(1.5rem, 4vh, 3rem);
   text-align: center;
-  padding: 3rem 1.5rem;
+  padding: 3rem var(--gutter-x);
   position: relative;
   overflow: hidden;
   background: radial-gradient(ellipse 70% 55% at 50% 32%, var(--paper-raised) 0%, var(--paper) 68%);
@@ -673,7 +690,7 @@ code {
 @media (max-width: 46rem) {
   .hero-stage {
     min-height: 100svh;
-    padding: 1.75rem 1.1rem;
+    padding: 1.75rem var(--gutter-x);
     gap: 1.25rem;
     justify-content: center;
   }
@@ -712,9 +729,24 @@ code {
    own Field/Seal/History markup (StateView/Seal/HistoryView, the exact
    components a real handoff renders with), fabricated content, no
    network call. ------------------------------------------------------ */
-.demo-links { padding: 3.5rem 0; }
-.demo-links h2 { font-size: 1.3rem; font-weight: 600; margin: 0 0 0.5rem; }
+/* The two below-fold sections share one heading treatment and one vertical
+   rhythm. They had drifted: 1.3rem fixed here against a clamp() there, and a
+   0.5rem heading margin against 2rem, so neither the type size nor the space
+   under the title matched between two sections stacked directly on each
+   other. */
+.demo-links,
+.explainer-section { padding: 3.5rem 0; }
+.demo-links h2,
+.explainer-title {
+  font-size: clamp(1.25rem, 3.2vw, 1.5rem);
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0 0 0.5rem;
+}
 .demo-links > .sub { color: var(--ink-muted); font-size: 0.95rem; margin: 0 0 1.75rem; max-width: 38rem; }
+/* No dek under the explainer's title, so it carries the spacing the sub would
+   otherwise have supplied. */
+.explainer-title { margin-bottom: 1.75rem; }
 
 .demo-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
 .demo-card {
@@ -770,8 +802,7 @@ code {
 
 /* --- collapsible explainer — the real mechanism, in order, grounded in
    the flow already worked out on the drawing board. --------------------- */
-.explainer-section { padding: 3.5rem 0; }
-.explainer-title { font-size: clamp(1.3rem, 3vw, 1.6rem); font-weight: 600; line-height: 1.2; margin: 0 0 2rem; }
+
 
 .explainer-flow { margin: 0 0 2rem; }
 .explainer-flow-svg { display: block; width: 100%; height: auto; }
@@ -790,35 +821,102 @@ code {
 .explainer-flow-loop-head { fill: var(--seal); }
 .explainer-flow-loop-label { font-family: var(--mono); font-size: 10.5px; fill: var(--seal); }
 
+/* On a phone the wide figure becomes a vertical rail. The horizontal version
+   wrapped mid-sequence and, because the row used `gap: 0.35rem 0`, the arrows
+   had no column gap and welded themselves to the preceding word ("You ask->").
+   A rail also carries the four edge labels the horizontal fallback dropped, so
+   the phone reader gets the causes and not just the nouns. */
 .explainer-flow-mobile {
-  display: none; list-style: none; margin: 0 0 2rem; padding: 0;
-  flex-wrap: wrap; align-items: center; gap: 0.35rem 0;
-  font-family: var(--mono); font-size: 0.78rem; color: var(--ink);
+  display: none;
+  position: relative;
+  flex-direction: column;
+  list-style: none;
+  margin: 0 0 2rem;
+  padding: 0;
+  --rail-x: 0.62rem;
 }
-.explainer-flow-mobile-step { display: flex; align-items: center; gap: 0.35rem; }
-/* Arrow goes BEFORE each step that follows another step, so there can never
-   be a trailing one. The old rule hung it off :not(:last-child), but the loop
-   <li> is the real last child, so the final step always drew an arrow into
-   nothing. */
-.explainer-flow-mobile-step + .explainer-flow-mobile-step::before { content: "→"; color: var(--ink-muted); }
-.explainer-flow-mobile-n { color: var(--ink-muted); }
-.explainer-flow-mobile-loop { width: 100%; margin-top: 0.4rem; color: var(--seal); }
+/* the spine, stopping at the last step so the loop can continue it dashed */
+.explainer-flow-mobile::before {
+  content: "";
+  position: absolute;
+  left: var(--rail-x);
+  top: 0.7rem;
+  bottom: 2.35rem;
+  width: 1px;
+  background: var(--rule-strong);
+}
+.explainer-flow-mobile-step {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  padding: 0.28rem 0;
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.explainer-flow-mobile-n {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 1.24rem;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  background: var(--paper);
+  padding: 0.1rem 0;
+}
+/* the cause, on the connector between one step and the next */
+/* The label lives INSIDE the row's own bottom padding, anchored to the bottom
+   rather than to top:100%. Anchoring to the top edge put it past the padding
+   and straight on top of the next step's text. */
+.explainer-flow-mobile-step[data-edge] { padding-bottom: 1.4rem; }
+.explainer-flow-mobile-step[data-edge]::after {
+  content: attr(data-edge);
+  position: absolute;
+  left: calc(var(--rail-x) + 0.85rem);
+  bottom: 0.25rem;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  line-height: 1;
+  color: var(--ink-muted);
+}
+.explainer-flow-mobile-loop {
+  position: relative;
+  margin-top: 0.5rem;
+  padding-left: 2rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--seal);
+}
+/* the spine carries on past the last step, dashed, the way the wide figure's
+   loop edge does */
+.explainer-flow-mobile-loop::before {
+  content: "";
+  position: absolute;
+  left: var(--rail-x);
+  top: -0.5rem;
+  height: 1.1rem;
+  border-left: 1px dashed var(--seal);
+}
 
-/* Hairline rows on one surface, not five detached rounded cards. The rest of
-   the product (.field, .record, .entries) already sets records as hanging
-   labels separated by rules; the card stack was the only place breaking that,
-   and a gapped stack of identical boxes also severs a sequence at exactly the
-   four points the diagram above draws arrows. */
 .explainer-list {
   display: flex; flex-direction: column;
   counter-reset: explainer-count;
   border-top: 1px solid var(--rule);
+  /* The number column, defined once. The header's title and the panel's body
+     both derive their left edge from these, so the two can never drift out of
+     alignment the way they had (body at 56px, title at 72px, a visibly ragged
+     left edge with the prose hanging left of its own heading). */
+  --idx-w: 1.7rem;
+  --idx-gap: 0.9rem;
 }
 .explainer-item { counter-increment: explainer-count; border-bottom: 1px solid var(--rule); }
 .explainer-item-heading { margin: 0; }
 .explainer-header {
-  box-sizing: border-box; width: 100%; display: flex; align-items: baseline; gap: 0.9rem;
-  background: transparent; border: none; margin: 0; padding: 0.95rem 0.25rem;
+  box-sizing: border-box; width: 100%; display: flex; align-items: baseline; gap: var(--idx-gap);
+  background: transparent; border: none; margin: 0; padding: 0.95rem 0;
   font-family: var(--serif); font-size: 1.05rem; font-weight: 600; color: var(--ink);
   text-align: left; cursor: pointer; outline-offset: -3px;
   transition: color 160ms ease;
@@ -832,7 +930,7 @@ code {
 .explainer-header:focus-visible { outline: 2px solid var(--amber); }
 .explainer-index {
   font-family: var(--mono); font-size: 0.78rem; color: var(--ink-muted);
-  min-width: 1.7rem; flex-shrink: 0; font-variant-numeric: tabular-nums;
+  min-width: var(--idx-w); flex-shrink: 0; font-variant-numeric: tabular-nums;
   transition: color 160ms ease;
 }
 .explainer-index::before { content: counter(explainer-count, decimal-leading-zero); }
@@ -850,7 +948,7 @@ code {
 .explainer-panel { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 200ms cubic-bezier(0.16, 1, 0.3, 1), opacity 150ms ease; }
 .explainer-panel.is-open { grid-template-rows: 1fr; opacity: 1; transition: grid-template-rows 240ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease 40ms; }
 .explainer-panel-inner { overflow: hidden; min-height: 0; }
-.explainer-panel-body { padding: 0.1rem 0.25rem 1.35rem 2.6rem; }
+.explainer-panel-body { padding: 0.1rem 0 1.35rem calc(var(--idx-w) + var(--idx-gap)); }
 .explainer-panel-body p { margin: 0 0 0.85rem; font-size: 0.98rem; line-height: 1.6; color: var(--ink); }
 .explainer-panel-body p:last-child { margin-bottom: 0; }
 .explainer-chip-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
@@ -869,8 +967,9 @@ code {
 .explainer-footnote-values { font-family: var(--mono); color: var(--ink); background: var(--paper-sunken); border: 1px solid var(--rule-strong); border-radius: var(--radius-inner); padding: 0.1em 0.5em; white-space: nowrap; }
 
 @media (max-width: 46rem) {
-  .explainer-header { padding: 1rem; gap: 0.65rem; font-size: 1rem; }
-  .explainer-panel-body { padding: 0.1rem 0.25rem 1.15rem 2.35rem; }
+  .explainer-list { --idx-w: 1.55rem; --idx-gap: 0.7rem; }
+  .explainer-header { padding: 0.9rem 0; font-size: 1rem; }
+  .explainer-panel-body { padding-bottom: 1.15rem; }
   .explainer-flow-svg { display: none; }
   .explainer-flow-mobile { display: flex; }
 }
