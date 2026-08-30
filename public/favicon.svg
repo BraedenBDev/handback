@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <title>Handback</title>
+  <!--
+    The masthead mark (src/App.tsx, symbol id "browser-mark"), simplified for 16px.
+
+    The site draws a 1.6-wide stroked outline on a 28x22 box. At 16px that
+    stroke lands at 0.9 device px and the two 0.9r chrome dots at 0.5px, so the
+    whole mark greys out into a smudge. Same silhouette here (rounded window,
+    chrome bar across the top, one thing sitting in that bar) rebuilt out of
+    filled shapes, so nothing is thinner than 1.2px at 16px.
+
+    A favicon is fetched as its own document. There is no page to inherit from:
+    no currentColor, no custom properties defined elsewhere, no external
+    stylesheet. Literal hex only. Token names are in the CSS comments below,
+    where they are legal; an XML comment may not contain a double hyphen, so
+    they cannot be written up here.
+  -->
+  <style>
+    .tile  { fill: #FBF9F5; }  /* --paper */
+    .frame { fill: #1A1714; }  /* --ink   */
+    .page  { fill: #FBF9F5; }  /* --paper */
+    .await { fill: #EDAE4A; }  /* --amber, dark-theme value: here it sits on ink */
+
+    @media (prefers-color-scheme: dark) {
+      .tile  { fill: #15130F; }  /* --paper dark */
+      .frame { fill: #F3EEE4; }  /* --ink   dark */
+      .page  { fill: #15130F; }  /* --paper dark */
+      .await { fill: #99540A; }  /* --amber, light value: it now sits on light ink */
+    }
+  </style>
+
+  <rect class="tile"  width="32" height="32" rx="7"/>
+  <rect class="frame" x="4.5" y="7"    width="23" height="18" rx="4"/>
+  <rect class="page"  x="7"   y="13.5" width="18" height="9"  rx="1.5"/>
+  <rect class="await" x="7"   y="8.75" width="7"  height="3"  rx="1.5"/>
+</svg>

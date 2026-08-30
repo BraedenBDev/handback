@@ -314,6 +314,17 @@ export function Hero({ onExit }: { onExit: () => void }) {
         </div>
       </div>
       <div className="window-ground" />
+
+      {/*
+        Honest footnote to the scene above. The loop is real and shipped, but
+        the conversation playing out in the window is scripted, and saying so
+        where the animation is rather than burying it in the README is the
+        difference between a demo and a claim.
+      */}
+      <p className="hero-note">
+        <span aria-hidden="true">*</span> Built on WebMCP. Works today in ChatGPT's desktop browser with Site tools on, and in
+        Chrome 149+ behind a flag. The conversation above is scripted. Agents without WebMCP fill the page directly.
+      </p>
     </section>
   );
 }

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <title>Handback</title>
+  <!--
+    SOURCE ONLY. Render this to public/apple-touch-icon.png at 180x180, opaque.
+
+    iOS will not load an SVG here, and it ignores the alpha channel: every
+    transparent pixel is painted black, so a mark exported on transparency
+    becomes a dark mark on a black tile. Hence the full bleed paper ground.
+
+    No rounded corners are baked in. iOS applies its own superellipse mask, and
+    a pre rounded source double rounds with visible artefacts. The window is
+    inset to about 67% of the canvas so the mask never bites into it.
+
+    Light palette only, and no media query: a PNG cannot respond to
+    prefers-color-scheme.
+  -->
+  <style>
+    .tile  { fill: #FBF9F5; }  /* --paper */
+    .frame { fill: #1A1714; }  /* --ink   */
+    .page  { fill: #FBF9F5; }  /* --paper */
+    .await { fill: #EDAE4A; }  /* --amber, dark-theme value: it sits on ink */
+  </style>
+
+  <rect class="tile"  width="180" height="180"/>
+  <rect class="frame" x="30" y="43" width="120" height="94" rx="21"/>
+  <rect class="page"  x="43" y="77" width="94"  height="47" rx="8"/>
+  <rect class="await" x="43" y="52" width="36"  height="16" rx="8"/>
+</svg>

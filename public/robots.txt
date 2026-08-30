@@ -1,7 +1,38 @@
 # Handoffs live at /h/<id> behind an unguessable id, and their decryption key
-# never leaves the URL fragment. A crawler cannot reach one it was not handed.
-# This is belt and braces: if a link is ever pasted somewhere public, it still
-# does not become a search result.
+# never leaves the URL fragment.
+#
+# There is deliberately no `Disallow: /h/` here, which looks backwards and is
+# not. robots.txt and X-Robots-Tag do different jobs, and stacking them cancels
+# them out: Disallow stops a crawler FETCHING the page, so it never sees the
+# `X-Robots-Tag: noindex` that public/_headers sends, and a link pasted
+# somewhere public stays eligible for a URL-only search result. Google is
+# explicit that a page blocked by robots.txt cannot honour noindex.
+#
+# Letting crawlers fetch /h/ costs nothing: the server returns the same empty
+# app shell it returns for every route. The content is ciphertext the server
+# cannot read, decrypted in the browser with a key that was never transmitted.
+# So the crawler reads nothing, sees noindex, and drops the URL entirely, which
+# is the outcome the Disallow was reaching for.
 User-agent: *
-Disallow: /h/
 Allow: /
+
+# AI crawlers are allowed on purpose, including the training ones.
+#
+# The usual advice to block them is a publisher's argument: training consumes
+# your words and returns no click. Handback is a free MIT-licensed tool whose
+# only discovery path is an agent already knowing it exists. WebMCP has no
+# discovery mechanism at all, so nothing announces these tools to an agent that
+# has not already been sent here. A model that learned what Handback is can
+# recommend it without retrieving anything, which makes being trained on the
+# goal rather than the cost.
+#
+# No named User-agent groups below this line, and that is deliberate too:
+# robots.txt matching is most-specific-wins, so a named group REPLACES the `*`
+# group instead of adding to it. Naming bots that only want what `*` already
+# grants creates a trap where a future `Disallow` added to `*` is silently
+# ignored by every bot named here.
+#
+# No Sitemap line either. There is one indexable URL, Google's own threshold for
+# bothering is around 500 pages, and an unknown path here returns the app shell
+# with a 200 rather than a 404, so pointing at a sitemap.xml that does not exist
+# would advertise a soft-404 instead of a sitemap.

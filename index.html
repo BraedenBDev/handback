@@ -6,12 +6,129 @@
     <!-- The fragment key must never leave with an outbound request. -->
     <meta name="referrer" content="no-referrer" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#FBF9F5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#15130F" media="(prefers-color-scheme: dark)" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
     <title>Handback — hand off the work, get it back intact</title>
+    <meta
+      name="description"
+      content="One link carries a session's state from your agent to someone else's. Encrypted in your browser, so the server never sees the key. Free, no account."
+    />
+    <link rel="canonical" href="https://handback.link/" />
+
+    <!-- The SVG adapts to the browser's colour scheme in Chrome, Firefox and
+         Edge. Safari ignores an SVG favicon's embedded stylesheet and always
+         takes the light branch, which is why that branch is a cream tile that
+         reads on a dark tab bar. The PNGs cover browsers that reject SVG
+         favicons outright. -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/favicon-16.png" type="image/png" sizes="16x16" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+
+    <!-- og:image must be absolute. Slack, X and iMessage do not resolve a
+         relative one, and that is the usual reason a card silently never
+         appears. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Handback" />
+    <meta property="og:url" content="https://handback.link/" />
+    <meta property="og:title" content="Handback — hand off the work, get it back intact" />
+    <meta
+      property="og:description"
+      content="One link carries a session's state from your agent to someone else's. Encrypted in your browser, so the server never sees the key."
+    />
+    <meta property="og:image" content="https://handback.link/og.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Handback. Hand off the work. Get it back intact." />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Entity description for answer engines. Handback has no ratings and will
+         not invent any, so it is ineligible for Google's Software App rich
+         result and stays so deliberately. This earns an unambiguous machine
+         description, not a SERP feature. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": ["SoftwareApplication", "WebApplication"],
+        "name": "Handback",
+        "url": "https://handback.link/",
+        "description": "Handback moves the state of an AI session between agents as one client-side-encrypted link. An agent packages the objective, decisions, constraints, tasks and open questions; another agent opens the same link, reads the structured state, and proposes a new sealed version.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any modern browser",
+        "browserRequirements": "WebMCP via document.modelContext, available in the ChatGPT desktop app browser with Site tools enabled or Chrome 149+ behind a flag. Works without WebMCP through the form on the page.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "license": "https://opensource.org/licenses/MIT",
+        "codeRepository": "https://github.com/BraedenBDev/handback",
+        "isAccessibleForFree": true
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      The content below is the page as prose. AI retrieval crawlers
+      (OAI-SearchBot, PerplexityBot, ClaudeBot) do not execute JavaScript, so
+      without it they read a title tag and an empty div, which is what
+      handback.link served until now. It lives inside #root, so React's first
+      render replaces it: nothing is hidden, nothing is served conditionally on
+      user-agent, and there is no second copy to keep in step by hand.
+
+      Keep this in step with src/Explainer.tsx. It is the text an answer engine
+      will quote back, and the bearer-capability paragraph is the load-bearing
+      one: without it a model reads "client-side encryption" and confabulates
+      "zero-knowledge", which is not what this is.
+    -->
+    <div id="root">
+      <h1>Handback — hand off the work, get it back intact</h1>
+      <p>
+        Handback moves the useful state of an AI session between agents as one link. An agent packages the objective, a
+        summary of where the work stands, the decisions and the reasoning behind them, constraints, outstanding tasks,
+        open questions, sources, and a note to whoever picks it up next. A second person's agent opens that same link and
+        reads the structured state directly instead of reconstructing it from a pasted transcript, proposes changes as a
+        diff against the exact version it read, and a new sealed version is written. Same link, new version,
+        indefinitely.
+      </p>
+
+      <h2>What the encryption does and does not promise</h2>
+      <p>
+        Content is encrypted in the browser with AES-256-GCM before any of it leaves the machine. The decryption key
+        lives only in the URL fragment, the part after the <code>#</code>, which browsers never send to a server. The
+        server holds an opaque id, a version number and a ciphertext envelope: no titles, no summaries, no search index.
+      </p>
+      <p>
+        Handback is a bearer capability, not zero-knowledge. Anyone holding the whole link, fragment included, can read
+        it, and the server ships the JavaScript that does the encrypting. Treat a Handback link the way you would treat
+        the document itself.
+      </p>
+
+      <h2>Which agents can use it</h2>
+      <p>
+        Handback is built on WebMCP and registers exactly four agent-callable tools on the page through
+        <code>document.modelContext</code>: <code>stage_handoff</code>, <code>get_handoff_receipt</code>,
+        <code>read_handoff</code> and <code>stage_contribution</code>. No approve or commit tool exists. It works today
+        in the ChatGPT desktop app's built-in browser with Site tools enabled, and in Chrome 149 or later with
+        <code>chrome://flags/#enable-webmcp-testing</code>. Agents without WebMCP use the ordinary form on the page.
+        Auto-approval is on by default, so <code>stage_handoff</code> saves the handoff and returns the link in the same
+        call; a per-device switch puts an approval gate back in front of every write.
+      </p>
+
+      <h2>Versions, seals and expiry</h2>
+      <p>
+        Every version is kept, because the store only appends. Each version carries a seal: the first eight characters of
+        a SHA-256 over its state, bound to the version number and the parent version's hash. The seal proves internal
+        consistency, not authorship, since anyone holding the key could recompute a valid one. Links expire on a window
+        the creator picks, either 24 hours, 7 days as the default, 30 days, or never, measured from the last change
+        rather than from creation. Expiry deletes the ciphertext for real, and nobody can recover it afterwards.
+      </p>
+
+      <p>
+        No account, no sign-up, no email address, and no cost. The source is at
+        <a href="https://github.com/BraedenBDev/handback">github.com/BraedenBDev/handback</a> under the MIT licence.
+      </p>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

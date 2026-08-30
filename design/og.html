@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Handback — OG card source (1200x630)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vollkorn:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+  /* ==========================================================================
+     Handback OG card — 1200x630. Screenshot this to public/og.png.
+
+     Designed at 1/3 scale first. Slack and X render a 1.91:1 unfurl at roughly
+     400px wide, so anything under ~30px on this canvas is illegible in a
+     timeline. Two tiers are built to survive that — the wordmark and the
+     headline — and one tier is deliberate texture: the seal chain reads as
+     "one link, three points on it" at thumbnail size and only resolves into
+     real version hashes when somebody opens the image.
+
+     Colours are the literal light-theme values from src/style.css. The page is
+     pinned to light: a headless browser inheriting a dark system preference
+     must not be able to flip the card, since a PNG cannot adapt afterwards.
+     ====================================================================== */
+
+  :root {
+    color-scheme: light;
+
+    --serif: "Vollkorn", ui-serif, Georgia, "Times New Roman", serif;
+    --mono: "Spline Sans Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --paper: #FBF9F5;
+    --ink: #1A1714;
+    --ink-muted: #655C51;
+    --rule-strong: #CFC5B6;
+    --amber: #99540A;
+    --seal: #2C5647;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+    background: var(--paper);
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    padding: 58px 88px 60px;
+    color: var(--ink);
+    font-family: var(--serif);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* --- masthead: the site's own, at card scale --------------------------- */
+
+  .masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--rule-strong);
+  }
+
+  .masthead-title { display: flex; align-items: center; gap: 15px; }
+
+  /* The mark is drawn exactly as src/App.tsx draws it — stroked outline, both
+     chrome dots. At 44px the 1.6 stroke resolves to 2.5px, so the outline
+     survives here; the favicon's filled simplification is a 16px concern only. */
+  .mark { display: block; flex: none; }
+
+  .wordmark {
+    font-size: 46px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1;
+  }
+
+  .origin {
+    font-family: var(--mono);
+    font-size: 25px;
+    color: var(--ink-muted);
+  }
+
+  /* --- the line ---------------------------------------------------------- */
+
+  .headline {
+    margin-top: 40px;
+    font-size: 90px;
+    font-weight: 600;
+    line-height: 1.03;
+    letter-spacing: -0.025em;
+  }
+
+  .sub {
+    margin-top: 26px;
+    font-size: 37px;
+    font-weight: 400;
+    line-height: 1.35;
+    color: var(--ink-muted);
+  }
+
+  /* --- the proof --------------------------------------------------------- */
+
+  .proof { margin-top: auto; }
+
+  .proof-label {
+    font-family: var(--mono);
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 26px;
+  }
+
+  /* One link with three sealed versions strung along it. The seal is the
+     site's own component (src/ui.tsx Seal) scaled 2.4x; the connectors are the
+     link itself, unchanged between versions. */
+  .chain { display: flex; align-items: center; width: 100%; }
+
+  .chain-link { flex: 1; height: 2px; background: var(--rule-strong); margin: 0 24px; }
+
+  .seal {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    font-family: var(--mono);
+    font-size: 28px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+
+  .seal-dot { width: 17px; height: 17px; border-radius: 50%; background: var(--seal); flex: none; }
+  .seal-version { color: var(--ink); font-weight: 500; }
+</style>
+</head>
+<body>
+
+  <header class="masthead">
+    <div class="masthead-title">
+      <svg class="mark" width="44" height="35" viewBox="0 0 28 22" aria-hidden="true">
+        <rect x="1.5" y="1.5" width="25" height="19" rx="3" stroke="#1A1714" stroke-width="1.6" fill="none"/>
+        <line x1="1.5" y1="7" x2="26.5" y2="7" stroke="#1A1714" stroke-width="1.6"/>
+        <circle cx="4.6" cy="4.2" r="0.9" fill="#1A1714"/>
+        <circle cx="7.6" cy="4.2" r="0.9" fill="#1A1714"/>
+      </svg>
+      <span class="wordmark">Handback</span>
+    </div>
+    <span class="origin">handback.link</span>
+  </header>
+
+  <h1 class="headline">Hand off the work.<br>Get it back intact.</h1>
+  <p class="sub">Encrypted in your browser. The server never sees the key.</p>
+
+  <section class="proof">
+    <div class="proof-label">Same link &middot; new version</div>
+    <div class="chain">
+      <span class="seal"><span class="seal-dot"></span><span class="seal-version">v1</span><span>7c1a9e42</span></span>
+      <span class="chain-link"></span>
+      <span class="seal"><span class="seal-dot"></span><span class="seal-version">v2</span><span>b4f0d183</span></span>
+      <span class="chain-link"></span>
+      <span class="seal"><span class="seal-dot"></span><span class="seal-version">v3</span><span>e29a5c60</span></span>
+    </div>
+  </section>
+
+</body>
+</html>

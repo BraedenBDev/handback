@@ -515,6 +515,12 @@ code {
   background: var(--paper-sunken);
   padding: 0.08em 0.32em;
   border-radius: 3px;
+  /* `chrome://flags/#enable-webmcp-testing` is one unbreakable token wider than
+     a phone. It appears in the WebMCP banner and in the crawler-visible prose
+     in index.html, and without this it pushes the document sideways on a narrow
+     screen. Caught as an intermittent horizontal-scroll failure that only
+     reproduced while the pre-hydration markup was still on screen. */
+  overflow-wrap: anywhere;
 }
 
 .muted { color: var(--ink-muted); }
@@ -648,6 +654,15 @@ code {
 }
 .hero-copy .sub { color: var(--ink-muted); font-size: clamp(1rem, 1.6vw, 1.25rem); margin: 0 auto; max-width: 30rem; text-wrap: balance; }
 
+/* Footnote to the scene: apparatus voice, deliberately quiet. Sentence case,
+   not the uppercase-tracked eyebrow treatment retired elsewhere on the page. */
+.hero-note {
+  position: relative; z-index: 1;
+  margin: 0.4rem auto 0; max-width: 44rem;
+  font-family: var(--mono); font-size: 0.7rem; line-height: 1.65;
+  color: var(--ink-muted); opacity: 0.75; text-wrap: pretty;
+}
+
 /* --- the hero on a phone: one flat, still card inside one screen height.
    The 3D stack, the idle orbit and the drop shadow all exist to make the
    window feel like an object floating in a room. A phone has no room and
@@ -687,6 +702,10 @@ code {
   .chat-bubble { max-width: 90%; padding: 0.5rem 0.7rem; border-radius: 11px; }
   .chat-bubble p { font-size: 0.85rem; line-height: 1.35; }
   .link-chip { font-size: 0.68rem; padding: 0.28rem 0.6rem; margin-top: 0.4rem; }
+
+  /* The footnote has to earn its place in a 100svh budget, so it drops to the
+     smallest size still comfortably legible rather than being cut. */
+  .hero-note { font-size: 0.63rem; line-height: 1.55; margin-top: 0.15rem; max-width: 100%; }
 }
 
 /* --- demo links + lightbox — click one to see a real handback link's
