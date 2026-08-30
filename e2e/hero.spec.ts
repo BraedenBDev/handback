@@ -15,7 +15,7 @@ async function createHandoff(page: Page, objective = "USB motif check") {
 test("hero shows on a fresh visit and is gone once a handoff exists", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".hero-stage")).toBeVisible();
-  await expect(page.locator(".mark-slot svg use")).toHaveAttribute("href", "#usb-mark");
+  await expect(page.locator(".mark-slot svg use")).toHaveAttribute("href", "#browser-mark");
 });
 
 test("masthead mark is present on a handoff page", async ({ page }) => {
@@ -28,4 +28,20 @@ test("no accessibility violations on the hero", async ({ page }) => {
   await page.goto("/");
   const results = await new AxeBuilder({ page }).include(".hero-stage, .masthead").analyze();
   expect(results.violations).toEqual([]);
+});
+
+test("scripted dialogue plays out to a live link chip", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByText("Research dinosaurs for me.")).toBeVisible();
+
+  // Page load -> last turn typed -> click pause is roughly
+  // 600 + 1300*3 ≈ 4500ms; give it plenty of headroom.
+  const linkPattern = /handback\.link\/h\//;
+  const linkChip = page.locator(".link-chip", { hasText: linkPattern });
+  await expect(linkChip).toBeVisible({ timeout: 6000 });
+
+  const browserUrl = page.locator(".browser-url");
+  await expect(browserUrl).toHaveClass(/is-live/);
+  await expect(browserUrl).toHaveText(linkPattern);
 });
