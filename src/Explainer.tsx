@@ -7,7 +7,7 @@ const ITEMS: Item[] = [
     heading: "How you start",
     body: (
       <>
-        <p>You don't open a new app or fill out a form. You just tell whatever agent you're already talking to what to do with the conversation.</p>
+        <p>You don't open a new app or fill out a form. You tell whatever agent you're already talking to what to do with the conversation.</p>
         <div className="explainer-chip-list">
           <span className="explainer-chip">Hand this off to Handback</span>
           <span className="explainer-chip">Save this to Handback before we lose the thread</span>
@@ -20,8 +20,8 @@ const ITEMS: Item[] = [
     heading: "It drafts, you review",
     body: (
       <p>
-        Your agent doesn't hand over a wall of prose. It packages the current state — objective, decisions made, constraints, open tasks,
-        unresolved questions — as structured data, and shows you the draft first. Nothing is saved yet.
+        Your agent doesn't hand over a wall of prose. It packages the current state (objective, decisions made, constraints, open tasks,
+        unresolved questions) as structured data and shows you the draft first. Nothing is saved yet.
       </p>
     ),
   },
@@ -32,7 +32,7 @@ const ITEMS: Item[] = [
         <span className="explainer-badge">Encrypted before it leaves your browser</span>
         <p>
           You approve, and your browser encrypts the content locally, before any of it leaves your machine. The decryption key lives only
-          in the URL fragment — the part after the <code className="explainer-inline-code">#</code> — which browsers never transmit to a
+          in the URL fragment, the part after the <code className="explainer-inline-code">#</code>, which browsers never transmit to a
           server. So the server only ever holds ciphertext it can't read. You get exactly one link.
         </p>
       </>
@@ -42,7 +42,7 @@ const ITEMS: Item[] = [
     heading: "Anyone can pick it up",
     body: (
       <p>
-        Whoever opens that link points any agent at it — doesn't have to be the same one, or the same person. That agent reads the
+        Whoever opens that link points any agent at it. It doesn't have to be the same one, or the same person. That agent reads the
         structured state directly. It's not reconstructing your objective from a pasted transcript; the objective is already there.
       </p>
     ),
@@ -51,9 +51,9 @@ const ITEMS: Item[] = [
     heading: "It keeps going",
     body: (
       <p>
-        When the new agent has changes, it proposes them as a diff against the exact version it read. A human approves — the same gate as
-        before, on both ends — and a new sealed version is created. That can repeat indefinitely, the same link accumulating versions
-        across however many hops. Every version is kept, so reopening the link later shows exactly what happened while you were away.
+        When the new agent has changes, it proposes them as a diff against the exact version it read. A human approves (the same gate as
+        before, on both ends), and a new sealed version gets created. That can repeat indefinitely, the same link accumulating versions
+        across however many hops. Every version stays, so reopening the link later shows exactly what happened while you were away.
       </p>
     ),
   },
@@ -179,7 +179,7 @@ export function Explainer() {
       </div>
 
       <p className="explainer-footnote">
-        Links expire on a window you choose — <span className="explainer-footnote-values">24h / 7d / 30d / never</span> — and the clock
+        Links expire on a window you choose: <span className="explainer-footnote-values">24h / 7d / 30d / never</span>, and the clock
         resets on every new version. Download the whole thing as a file at any point, so the work survives even if this service doesn't.
       </p>
     </section>

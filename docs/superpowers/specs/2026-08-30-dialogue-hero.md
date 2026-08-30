@@ -2,14 +2,15 @@
 
 ## Summary
 
-The CreatePage landing hero (`src/Hero.tsx`) has no object metaphor. It is a
-scripted two-turn conversation — a user asking for something, an agent
-doing it, the user asking to save it, the agent handing back a real-shaped
-Handback link — playing out inside a floating browser-window frame. The
-window tilts with scroll and pointer position, the link gets "clicked," the
-address bar flips to show the live URL, then the whole scene clears and a
-different short script starts. This is the second replacement of the
-original hero concept; see History below.
+The CreatePage landing hero (`src/Hero.tsx`) has no object metaphor. A
+scripted conversation plays out inside a floating browser-window frame: a
+user asks for something, an agent does it, the user asks to save it, and the
+agent hands back a real-shaped Handback link. The window then wipes, and a
+second session opens knowing nothing, picks the work back up from that same
+link, edits it, and hands it back. The window tilts with scroll and pointer
+position, the closing link gets "clicked," the address bar flips to show the
+live URL, then the scene clears and a different script starts. This is the
+second replacement of the original hero concept; see History below.
 
 The masthead mark and the WebGL connect-flash that fires once per page
 mount are unchanged from the previous spec
@@ -23,8 +24,8 @@ connect-flash sections remain the accurate description.
 
 `Hero` renders a `<section className="hero-stage">` containing:
 - `.hero-copy` — an `<h2>` reading "Hand off the work.<br/>Get it back
-  intact." and a `.sub` paragraph: "A private link, not a paste. Move it,
-  plug it in anywhere, get it back with everything that happened to it."
+  intact." and a `.sub` paragraph: "One encrypted link. Any agent opens it,
+  adds to it, and hands it back, with every version kept."
 - `.window-perspective` > `.window-orbit` > `.window-tilt` > `.window-object`
   — a nested transform stack. `.window-object` contains `.browser-stack`,
   which layers `.browser-edge` (an offset backing card, purely decorative)
@@ -33,76 +34,113 @@ connect-flash sections remain the accurate description.
   holding `.chat-stack`.
 - `.window-ground` — a soft radial shadow beneath the window.
 
-### The two scripts
+### The three scripts, two segments each
 
-`Hero.tsx` defines `SCRIPTS: Turn[][]`, exactly two four-turn scripts, each
-alternating `user` → `agent` → `user` → `agent`. Quoted verbatim from the
-source:
+`Hero.tsx` defines `SCRIPTS: Script[]`, where
+`Script = { provider: string; segments: Turn[][] }`. Three scripts, one per
+provider the README names as unable to open each other's work: Claude,
+ChatGPT, Gemini. The `provider` string is what the `.browser-url` pill shows
+before a link resolves, so the window names a real agent rather than a
+generic "new session."
 
-Script 1:
+Each script holds exactly two four-turn segments, alternating
+`user` → `agent` → `user` → `agent`. Taking the Claude script as the
+pattern:
+
+Segment 1 (mint the link):
 1. user: "Research dinosaurs for me."
-2. agent: "Done — three key eras, a shortlist of sources, and one open
-   question about feathered species."
+2. agent: "Done. Three key eras, a shortlist of sources, one open question
+   about feathered species."
 3. user: "Save this to Handback."
 4. agent: "Here's your link:" with `link: "handback.link/h/aB3xY9Qz…#••••••"`
 
-Script 2:
-1. user: "Summarize this thread for the team."
-2. agent: "Done — objective, decisions, and two open questions, written up."
-3. user: "Save this to Handback."
-4. agent: "Here's your link:" with `link: "handback.link/h/8k2NpQr7…#••••••"`
+The window then wipes (see `session-break` below).
 
-A code comment directly above `SCRIPTS` explains the intent: two short,
-plausible tasks, "not the same demo every loop, so it reads as 'this works
-for whatever you're doing' rather than 'this one demo.'" There is no third
-script and no randomization — the component alternates strictly between
-these two via `scriptIndex % SCRIPTS.length`.
+Segment 2 (pick it back up):
+1. user: "Pick up the research from this handback.link."
+2. agent: "Loaded. Three key eras, one open question about feathered
+   species."
+3. user: "Add the asteroid impact timeline, then hand it back."
+4. agent: "Added. Same link, new version." with the **same** `link` string as
+   segment 1's closing turn.
+
+**The wipe is load-bearing, not decoration.** Segment two is a different
+session that starts knowing nothing, and the only thing crossing the gap is
+the link. Playing both halves as one unbroken transcript would read as an
+agent with memory, which is the opposite of the product's claim. The link
+text being identical across the two segments is what makes "same link, new
+version" checkable by eye rather than merely asserted.
+
+There is no randomization; the component cycles strictly via
+`scriptIndex % SCRIPTS.length`.
 
 ### Phase state machine
 
-A `Phase` type — `"typing" | "clicking" | "clicked" | "clearing"` — drives
-a `useEffect` that owns one `setTimeout` at a time. The literal timing
-constants from `Hero.tsx`:
+A `Phase` type — `"typing" | "session-break" | "clicking" | "clicked" |
+"clearing"` — drives a `useEffect` that owns one `setTimeout` at a time.
+State is `scriptIndex`, `segmentIndex`, `turnCount`, `phase`. The literal
+timing constants from `Hero.tsx`:
 
 ```
-TURN_DELAY_MS = 1300
+TURN_DELAY_MS = 1150
 FIRST_TURN_DELAY_MS = 600
 CLICK_PAUSE_MS = 1000
 CLICK_ANIM_MS = 220
-HOLD_AFTER_CLICK_MS = 1600
+HOLD_AFTER_CLICK_MS = 1400
 CLEAR_MS = 350
+HOLD_BEFORE_BREAK_MS = 1300
 ```
 
 The sequence per script:
-1. **typing**, `turnCount < script.length`: reveal one more turn.
-   First turn after `FIRST_TURN_DELAY_MS` (600ms), every subsequent turn
-   after `TURN_DELAY_MS` (1300ms).
-2. **typing**, all turns revealed: wait `CLICK_PAUSE_MS` (1000ms), then
+1. **typing**, `turnCount < segment.length`: reveal one more turn. First
+   turn after `FIRST_TURN_DELAY_MS` (600ms), every subsequent turn after
+   `TURN_DELAY_MS` (1150ms).
+2. **typing**, segment finished, not the last segment: hold
+   `HOLD_BEFORE_BREAK_MS` (1300ms) so the minted link registers, then move
+   to `session-break`.
+3. **session-break**: wait `CLEAR_MS` (350ms) while the screen fades, then
+   advance `segmentIndex`, reset `turnCount` to 0, return to `typing`.
+4. **typing**, last segment finished: wait `CLICK_PAUSE_MS` (1000ms), then
    move to `clicking`.
-3. **clicking**: wait `CLICK_ANIM_MS` (220ms), then move to `clicked`.
-4. **clicked**: wait `HOLD_AFTER_CLICK_MS` (1600ms), then move to
+5. **clicking**: wait `CLICK_ANIM_MS` (220ms), then move to `clicked`.
+6. **clicked**: wait `HOLD_AFTER_CLICK_MS` (1400ms), then move to
    `clearing`.
-5. **clearing**: wait `CLEAR_MS` (350ms), then advance `scriptIndex` to the
-   next script (wrapping via modulo), reset `turnCount` to 0, and return to
-   `typing`.
+7. **clearing**: wait `CLEAR_MS` (350ms), then advance `scriptIndex`
+   (wrapping via modulo), reset `segmentIndex` and `turnCount` to 0, return
+   to `typing`.
+
+One full script therefore runs roughly 10.7s. Under `prefers-reduced-motion:
+reduce` the effect returns early, jumping straight to the final segment
+fully revealed with `phase = "clicked"`.
 
 ### The click payoff
 
-`visibleTurns` is `script.slice(0, turnCount)` — only turns revealed so
-far render into `.chat-stack`, each as a `.chat-turn` (`user` or `agent`,
-right- or left-aligned via `justify-content`) wrapping a `.chat-bubble`.
-The last turn of each script carries a `link`; when present it renders as
-a `.link-chip` inside that bubble, which gets a `.clicking` class (a CSS
-`scale(0.94)` per `.link-chip.clicking`) while `phase === "clicking"`.
+**Every turn of the current segment renders**, not just the revealed ones.
+Unrevealed turns carry `visibility: hidden` (per `.chat-turn`) and gain
+`.visible` as `turnCount` passes them. This reserves the segment's full
+height from the first frame, so the window does not grow turn by turn and
+shove the rest of the page down. `visibility: hidden` rather than
+`opacity: 0` alone matters twice over: it reserves layout space, and it
+keeps Playwright's `toBeVisible()` honest, since that checks
+`visibility`/`display` but not opacity.
+
+Each turn is a `.chat-turn` (`user` or `agent`, right- or left-aligned via
+`justify-content`) wrapping a `.chat-bubble`. The closing turn of each
+segment carries a `link`, rendered as a `.link-chip`. Only the final
+segment's chip also gets `.link-chip-final`, and only that one gets the
+`.clicking` class (a CSS `scale(0.94)`) while `phase === "clicking"` —
+segment one's chip is shown, not yet proven. `.chat-stack` is keyed on
+`` `${scriptIndex}-${segmentIndex}` `` so React remounts the turns on every
+segment change instead of diffing one segment's bubbles into the next.
 
 `linkLive` is `true` for phases `"clicked"` and `"clearing"`. The
-`.browser-url` pill's text (`urlText`) is `"new session"` until `linkLive`,
-at which point it swaps to the script's real link text (e.g.
+`.browser-url` pill's text (`urlText`) is the script's `provider` name until
+`linkLive`, at which point it swaps to the real link text (e.g.
 `handback.link/h/aB3xY9Qz…#••••••`) and gains the `.is-live` class, which
 recolors it to `var(--seal)` — this is the moment the address bar "proves
-it's real." During `"clearing"`, `.browser-screen` also gets a `.clearing`
-class, which per CSS fades the whole screen's opacity to 0 as the scene
-resets for the next script.
+it's real." `wiping` is `true` for `"clearing"` and `"session-break"`, and
+puts a `.clearing` class on `.browser-screen`, fading the screen to 0 for
+both the mid-script session wipe and the end-of-script reset.
 
 ### Scroll and pointer transform
 

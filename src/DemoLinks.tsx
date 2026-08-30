@@ -22,7 +22,7 @@ const DEMOS: { id: string; title: string; doc: HandoffDocument }[] = [
         objective:
           "Move production Postgres off the self-hosted box onto Neon before the Oct 1 storage renewal, with zero data loss and under five minutes of write downtime.",
         summary:
-          "Schema diff and seed copy are done and verified against row counts. The cutover script is written but not yet run against a staging clone — that's the last gate before we pick a maintenance window.",
+          "Schema diff and seed copy are done and verified against row counts. The cutover script is written but not yet run against a staging clone. That's the last gate before we pick a maintenance window.",
         decisions: [
           {
             decision: "Dual-write during the cutover window",
@@ -30,7 +30,7 @@ const DEMOS: { id: string; title: string; doc: HandoffDocument }[] = [
           },
           {
             decision: "Keep the old box running for 14 days",
-            rationale: "Neon's point-in-time recovery only reaches back 7 days on our plan — a live fallback covers the gap.",
+            rationale: "Neon's point-in-time recovery only reaches back 7 days on our plan. A live fallback covers the gap.",
           },
         ],
         tasks: [
@@ -78,7 +78,7 @@ const DEMOS: { id: string; title: string; doc: HandoffDocument }[] = [
       parentHash: "914bb2a0",
       state: {
         objective:
-          "Get sign-off on the redesigned one-page checkout before it ships to 10% of traffic on Monday — specifically the address autofill and the guest-checkout default.",
+          "Get sign-off on the redesigned one-page checkout before it ships to 10% of traffic on Monday, specifically the address autofill and the guest-checkout default.",
         summary:
           "Wireframes and copy are approved. The accessibility audit came back with two contrast issues on the error states, both since fixed. Waiting on the stakeholder review scheduled for tomorrow morning.",
         decisions: [
@@ -145,7 +145,7 @@ const DEMOS: { id: string; title: string; doc: HandoffDocument }[] = [
           },
           {
             decision: "Patch forward, no rollback",
-            rationale: "The fix was a pool-size and timeout config change, not a code revert — rolling back would have undone unrelated fixes too.",
+            rationale: "The fix was a pool-size and timeout config change, not a code revert. Rolling back would have undone unrelated fixes too.",
           },
         ],
         tasks: [
@@ -218,8 +218,8 @@ export function DemoLinks() {
 
   return (
     <section className="demo-links">
-      <h2>See what a handback link actually looks like</h2>
-      <p className="sub">Three example handoffs, reusing the real product's own Field/Seal/History markup — click a card to open it.</p>
+      <h2>See what a handback link looks like</h2>
+      <p className="sub">Three example handoffs, rendered by the real interface. Click a card to open one.</p>
 
       <div className="demo-cards">
         {DEMOS.map((demo) => {
@@ -262,7 +262,7 @@ export function DemoLinks() {
             className={`demo-panel${closing ? " is-closing" : ""}`}
             role="dialog"
             aria-modal="true"
-            aria-label={`Example — ${open.title}`}
+            aria-label={`Example: ${open.title}`}
             tabIndex={-1}
             ref={panelRef}
           >
@@ -270,7 +270,7 @@ export function DemoLinks() {
               &times;
             </button>
             <div className="demo-panel-head">
-              <p className="demo-note">Example content — not a live link</p>
+              <p className="demo-note">Example content, not a live link</p>
               <h3 className="demo-panel-title">{open.title}</h3>
             </div>
             <Seal version={open.doc.version} hash={open.doc.contentHash} />

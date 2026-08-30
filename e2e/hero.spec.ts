@@ -35,11 +35,14 @@ test("scripted dialogue plays out to a live link chip", async ({ page }) => {
 
   await expect(page.getByText("Research dinosaurs for me.")).toBeVisible();
 
-  // Page load -> last turn typed -> click pause is roughly
-  // 600 + 1300*3 ≈ 4500ms; give it plenty of headroom.
+  // Segment one (600 + 1150*3), the hold and wipe (1300 + 350), then
+  // segment two (600 + 1150*3) and the click pause (1000) is roughly
+  // 10.7s. Only segment two's closing turn carries .link-chip-final, so
+  // this waits through the whole round trip rather than matching segment
+  // one's chip and passing early.
   const linkPattern = /handback\.link\/h\//;
-  const linkChip = page.locator(".link-chip", { hasText: linkPattern });
-  await expect(linkChip).toBeVisible({ timeout: 6000 });
+  const linkChip = page.locator(".link-chip-final", { hasText: linkPattern });
+  await expect(linkChip).toBeVisible({ timeout: 16000 });
 
   const browserUrl = page.locator(".browser-url");
   await expect(browserUrl).toHaveClass(/is-live/);

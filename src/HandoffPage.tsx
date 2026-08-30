@@ -175,8 +175,8 @@ export function HandoffPage({ id }: { id: string }) {
         <Field label="Expired" index={0}>
           <p className="lede">This handoff has expired.</p>
           <p className="muted">
-            Its contents were deleted on the schedule the person who created it chose. Nothing here can recover them,
-            and neither can we: the server never held the key.
+            We deleted its contents on the schedule its creator chose. Nothing here can recover them, and neither can
+            we: the server never held the key.
           </p>
           <p className="muted">
             <a href="/">Start a new handoff</a>
@@ -216,7 +216,7 @@ export function HandoffPage({ id }: { id: string }) {
 
       {seal === "mismatch" ? (
         <p className="error" role="alert">
-          This version's contents do not match its recorded seal, which means it was changed outside the approval path.
+          This version's contents do not match its recorded seal. Something changed it outside the approval path.
           Treat everything below as unverified.
         </p>
       ) : null}
@@ -252,8 +252,8 @@ export function HandoffPage({ id }: { id: string }) {
 
       <Field label="Take it with you" index={10}>
         <p className="muted">
-          These save to your own device in the clear, so you keep the work if this service disappears. The JSON can be
-          brought back in from the front page.
+          These save to your own device in the clear, so you keep the work if this service disappears. Bring the JSON
+          back in from the front page whenever you want it.
           {expiresAt ? " Worth doing before it expires." : ""}
         </p>
         <div className="actions">

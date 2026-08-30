@@ -45,7 +45,7 @@ export function Seal({
 }) {
   const title =
     verdict === "mismatch"
-      ? "This version's contents do not match its recorded seal. It was changed outside the approval path."
+      ? "This version's contents do not match its recorded seal. Something changed it outside the approval path."
       : verdict === "unsealed"
         ? "Created before seals existed, so there is nothing to check against."
         : "Contents match the recorded seal.";
@@ -314,7 +314,7 @@ export function ApprovalMode({ onChange }: { onChange?: (on: boolean) => void })
       <b>{on ? "Auto-approving." : "Approval required."}</b>
       <span>
         {on
-          ? "Your agent creates and commits on this device without asking. Every version is still kept, so anything it writes can be read back."
+          ? "Your agent creates and commits on this device without asking. Every version stays, so you can read back anything it writes."
           : "Your agent stages; you click to commit."}
       </span>
       <button type="button" className="mode-toggle" onClick={toggle} aria-pressed={on}>

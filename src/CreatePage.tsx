@@ -108,8 +108,8 @@ export function CreatePage() {
       setDraft(result.state);
       setNotice(
         result.seal === "mismatch"
-          ? `Imported, but the file's seal does not match its contents, so it was edited outside Handback. Review it closely before creating.`
-          : `Imported from version ${result.originalVersion}. Creating from this makes a new handoff that you own; the original link is untouched.`,
+          ? `Imported, but the file's seal doesn't match its contents. Something changed it outside Handback, so review it before creating.`
+          : `Imported from version ${result.originalVersion}. Creating from this makes a new handoff you own. The original link stays untouched.`,
       );
     } catch (cause) {
       setError(cause instanceof ImportError ? cause.message : "Could not read that file.");
@@ -190,8 +190,7 @@ export function CreatePage() {
             </div>
             <h2>Review this handoff</h2>
             <p className="pending-note">
-              Your agent assembled this. Nothing has been encrypted, saved or shared yet, and nothing will be until you
-              approve it.
+              Your agent assembled this. Nothing here is encrypted, saved, or shared until you approve it.
             </p>
             <label className="retention">
               <span className="label-text">Keep it for</span>

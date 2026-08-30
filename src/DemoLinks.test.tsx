@@ -13,7 +13,7 @@ describe("DemoLinks", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
-    expect(screen.getByText("Example content — not a live link")).toBeInTheDocument();
+    expect(screen.getByText("Example content, not a live link")).toBeInTheDocument();
     expect(screen.getAllByText("Postgres → Neon cutover").length).toBeGreaterThan(1);
 
     fireEvent.keyDown(document, { key: "Escape" });

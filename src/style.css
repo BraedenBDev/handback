@@ -47,6 +47,14 @@
   --hero-screen-seal: #2C5647;
   --hero-screen-seal-surface: #EDF3F0;
 
+  /* the hero window's own chrome bar — matches --paper-sunken/--rule in
+     light mode (unchanged from before), but gets a dedicated lifted pair
+     in dark mode below, since the theme-flipped tokens both land so close
+     to black that the gradient the light theme relies on for a bit of
+     dimension disappears entirely. */
+  --browser-chrome-a: #F4F0E8;
+  --browser-chrome-b: #E2DBD0;
+
   --radius: 10px;
   --radius-inner: 6px;
   --gutter: 8.5rem;
@@ -86,6 +94,9 @@
     --danger: #E99191;
     --danger-surface: #2A1614;
 
+    --browser-chrome-a: #2A251D;
+    --browser-chrome-b: #3A3226;
+
     color-scheme: dark;
   }
 }
@@ -107,6 +118,9 @@
   --seal-surface: #16221D;
   --danger: #E99191;
   --danger-surface: #2A1614;
+
+  --browser-chrome-a: #2A251D;
+  --browser-chrome-b: #3A3226;
 
   color-scheme: dark;
 }
@@ -553,7 +567,7 @@ code {
   display: flex; align-items: center; gap: 0.7rem;
   padding: 0.9rem 1.2rem;
   border-bottom: 1px solid var(--rule);
-  background: linear-gradient(180deg, var(--paper-sunken) 0%, var(--rule) 220%);
+  background: linear-gradient(180deg, var(--browser-chrome-a) 0%, var(--browser-chrome-b) 220%);
 }
 .browser-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rule-strong); flex: none; }
 .browser-url {
