@@ -5,8 +5,8 @@ import { createHandoff } from "./api.ts";
 import { stampDocument } from "./hash.ts";
 import { ImportError, readPortableFile } from "./import.ts";
 import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
-import { DEFAULT_RETENTION_DAYS, RETENTION_CHOICES, describeExpiry } from "../shared/expiry.ts";
-import { readAutoApprove } from "./auto-approve.ts";
+import { DEFAULT_RETENTION_DAYS, MAX_RETENTION_DAYS, RETENTION_CHOICES, describeExpiry, isValidRetention } from "../shared/expiry.ts";
+import { readAutoApprove, writeAutoApprove } from "./auto-approve.ts";
 import { ApprovalMode, ErrorNote, Field, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
 import { Hero } from "./Hero.tsx";
 import { DemoLinks } from "./DemoLinks.tsx";
@@ -31,6 +31,33 @@ export function CreatePage() {
 
   useEffect(() => {
     const bridge: WebMcpBridge = {
+      readSettings: () => ({
+        requireApproval: !readAutoApprove(),
+        retentionDays: latest.current.retentionDays,
+      }),
+      writeSettings: (next) => {
+        if (next.requireApproval === false) {
+          return {
+            status: "refused" as const,
+            reason: "human_only",
+            message:
+              "The approval gate can only be switched off by a person, using the control on this page. A tool call can switch it on.",
+          };
+        }
+        if (next.requireApproval === true) writeAutoApprove(false);
+        if (next.retentionDays !== undefined) {
+          if (!isValidRetention(next.retentionDays)) {
+            return {
+              status: "refused" as const,
+              reason: "invalid_retention",
+              message: `retentionDays must be null or a whole number of days from 1 to ${MAX_RETENTION_DAYS}.`,
+            };
+          }
+          setRetentionDays(next.retentionDays);
+          latest.current = { ...latest.current, retentionDays: next.retentionDays };
+        }
+        return { requireApproval: !readAutoApprove(), retentionDays: latest.current.retentionDays };
+      },
       stageHandoff: async (state) => {
         setError(null);
         setNotice(null);

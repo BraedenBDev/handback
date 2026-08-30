@@ -34,10 +34,25 @@ export function readAutoApprove(): boolean {
   }
 }
 
+/**
+ * Anything that changes the preference has to tell the UI, because an agent can
+ * now change it through the `handback_settings` tool and the approval strip
+ * would otherwise keep rendering a stale state until the next reload.
+ */
+const listeners = new Set<(on: boolean) => void>();
+
+export function subscribeAutoApprove(fn: (on: boolean) => void): () => void {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+
 export function writeAutoApprove(on: boolean): void {
   try {
     localStorage.setItem(KEY, on ? "on" : "off");
   } catch {
     // A preference that does not persist is still a preference for this visit.
   }
+  for (const fn of listeners) fn(on);
 }

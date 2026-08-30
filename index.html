@@ -106,13 +106,16 @@
 
       <h2>Which agents can use it</h2>
       <p>
-        Handback is built on WebMCP and registers exactly four agent-callable tools on the page through
+        Handback is built on WebMCP and registers five agent-callable tools on the page through
         <code>document.modelContext</code>: <code>stage_handoff</code>, <code>get_handoff_receipt</code>,
-        <code>read_handoff</code> and <code>stage_contribution</code>. No approve or commit tool exists. It works today
+        <code>read_handoff</code>, <code>stage_contribution</code> and <code>handback_settings</code>. No approve or
+        commit tool exists, and <code>handback_settings</code> can switch the human approval gate on but never off. It
+        works today
         in the ChatGPT desktop app's built-in browser with Site tools enabled, and in Chrome 149 or later with
         <code>chrome://flags/#enable-webmcp-testing</code>. Agents without WebMCP use the ordinary form on the page.
         Auto-approval is on by default, so <code>stage_handoff</code> saves the handoff and returns the link in the same
-        call; a per-device switch puts an approval gate back in front of every write.
+        call; a per-device switch puts an approval gate back in front of every write. An agent can switch that gate on through
+        <code>handback_settings</code>; only a person can switch it off.
       </p>
 
       <h2>Versions, seals and expiry</h2>

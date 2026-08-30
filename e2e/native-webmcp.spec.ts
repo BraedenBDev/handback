@@ -55,14 +55,14 @@ test("the browser really does expose WebMCP here", async ({ page }) => {
   expect(platform.originKeyed).toBe(true);
 });
 
-test("registers exactly the four staging tools against the real API", async ({ page }) => {
+test("registers exactly the five tools against the real API", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("WebMCP tools registered")).toBeVisible();
 
   const names = await page.evaluate(async () =>
     (await (document as any).modelContext.getTools()).map((t: any) => t.name).sort(),
   );
-  expect(names).toEqual(["get_handoff_receipt", "read_handoff", "stage_contribution", "stage_handoff"]);
+  expect(names).toEqual(["get_handoff_receipt", "handback_settings", "read_handoff", "stage_contribution", "stage_handoff"]);
   expect(names.some((n: string) => /approve|commit|publish|delete|revoke/.test(n))).toBe(false);
 });
 

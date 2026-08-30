@@ -13,14 +13,14 @@ describe("Explainer", () => {
   it("opens the first step on load so the section is never wordless", () => {
     render(<Explainer />);
     expect(screen.getByRole("button", { name: /How you start/ })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: /It drafts, you review/ })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: /It packages and saves/ })).toHaveAttribute("aria-expanded", "false");
   });
 
   it("toggles a panel independently of the others", () => {
     render(<Explainer />);
 
     const first = screen.getByRole("button", { name: /How you start/ });
-    const second = screen.getByRole("button", { name: /It drafts, you review/ });
+    const second = screen.getByRole("button", { name: /It packages and saves/ });
 
     fireEvent.click(second);
     expect(second).toHaveAttribute("aria-expanded", "true");

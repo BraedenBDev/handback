@@ -31,6 +31,8 @@ function fakeContext() {
 }
 
 const bridge = (overrides: Partial<WebMcpBridge> = {}): WebMcpBridge => ({
+  readSettings: () => ({ requireApproval: false, retentionDays: 7 }),
+  writeSettings: () => ({ requireApproval: false, retentionDays: 7 }),
   stageHandoff: vi.fn(),
   getReceipt: () => ({ status: "pending" }),
   readHandoff: () => ({ objective: "o", version: 1 }),
@@ -52,7 +54,7 @@ describe("entry point, across every place it has lived", () => {
     const { registered, context } = fakeContext();
     (document as any).modelContext = context;
     await registerHandbackTools(bridge());
-    expect(registered).toHaveLength(4);
+    expect(registered).toHaveLength(5);
   });
 
   it("falls back to navigator.modelContext, which Brave and the official polyfill still expose", async () => {
@@ -60,7 +62,7 @@ describe("entry point, across every place it has lived", () => {
     (navigator as any).modelContext = context;
     expect(isWebMcpAvailable()).toBe(true);
     await registerHandbackTools(bridge());
-    expect(registered).toHaveLength(4);
+    expect(registered).toHaveLength(5);
   });
 
   it("prefers document when a host exposes both", async () => {
@@ -69,7 +71,7 @@ describe("entry point, across every place it has lived", () => {
     (document as any).modelContext = preferred.context;
     (navigator as any).modelContext = deprecated.context;
     await registerHandbackTools(bridge());
-    expect(preferred.registered).toHaveLength(4);
+    expect(preferred.registered).toHaveLength(5);
     expect(deprecated.registered).toHaveLength(0);
   });
 
@@ -316,7 +318,7 @@ describe("an API injected after mount is still picked up", () => {
       (document as any).modelContext = context;
       await vi.advanceTimersByTimeAsync(600);
       await pending;
-      expect(registered).toHaveLength(4);
+      expect(registered).toHaveLength(5);
     } finally {
       vi.useRealTimers();
     }

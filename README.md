@@ -118,13 +118,18 @@ Four tools, registered on the page through `document.modelContext.registerTool`:
 | `get_handoff_receipt` | Reports pending, or the link once created | Create anything |
 | `read_handoff` | Returns requested sections of the open handoff | Reveal the key |
 | `stage_contribution` | Writes a new sealed version against a base version | Delete anything |
+| `handback_settings` | Reads settings; sets retention; switches the gate **on** | Switch the gate off |
 
-With the gate switched on, the first and fourth stage instead of writing, and
-return `staged_awaiting_human_approval` until a person clicks.
+With the gate switched on, `stage_handoff` and `stage_contribution` stage
+instead of writing, and return `staged_awaiting_human_approval` until a person
+clicks.
 
-**No `approve_*` or `commit_*` tool exists**, and none will. Approving is a
-button, so switching the gate on is always enough to put a person back in the
-loop; there is no tool call that can turn it off. `readOnlyHint` and
+**No `approve_*` or `commit_*` tool exists**, and none will. `handback_settings`
+is deliberately asymmetric for the same reason: an agent can switch the approval
+gate on, and `requireApproval: false` is refused. Raising the bar is always safe;
+lowering it would hand the last consent control to whatever agent is on the page,
+including one that has been prompt-injected by the handoff it just read. A person
+turns the gate off with the button, and nothing else can. `readOnlyHint` and
 `untrustedContentHint` are hints to the model, not enforcement, so treat them as
 documentation rather than a security control.
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { HandoffDocument, HandoffState } from "../shared/schema.ts";
 import { sealOf, type SealVerdict } from "./hash.ts";
-import { readAutoApprove, writeAutoApprove } from "./auto-approve.ts";
+import { readAutoApprove, subscribeAutoApprove, writeAutoApprove } from "./auto-approve.ts";
 
 /**
  * Presentational pieces.
@@ -301,6 +301,10 @@ export function ToolStatus({ available }: { available: boolean }) {
  */
 export function ApprovalMode({ onChange }: { onChange?: (on: boolean) => void }) {
   const [on, setOn] = useState(readAutoApprove);
+
+  // An agent can switch the gate on through `handback_settings`, so this strip
+  // has to follow the store rather than only its own button.
+  useEffect(() => subscribeAutoApprove(setOn), []);
 
   function toggle() {
     const next = !on;

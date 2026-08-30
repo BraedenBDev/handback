@@ -36,7 +36,11 @@ export type AutoApproved =
   | { status: "committed"; version: number };
 
 /** What the page lets the tools do. Implemented by React, injected here. */
+export type HandbackSettings = { requireApproval: boolean; retentionDays: number | null };
+
 export type WebMcpBridge = {
+  readSettings(): HandbackSettings;
+  writeSettings(next: { requireApproval?: boolean; retentionDays?: number | null }): HandbackSettings | ToolRefusal;
   stageHandoff(state: HandoffState): void | ToolRefusal | Promise<void | ToolRefusal | AutoApproved>;
   getReceipt(): { status: "pending" | "created"; url?: string; version?: number };
   readHandoff(sections: ReadSection[]): Record<string, unknown> | { error: string };
@@ -352,6 +356,42 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
         operationCount: staged.operationCount,
         message: "Diff is on screen. The human reviews and clicks Approve contribution.",
       });
+    },
+  });
+
+  // The one settings tool. It is deliberately asymmetric: an agent can switch
+  // the human approval gate ON, and cannot switch it off. Raising the bar is
+  // always safe, and the reverse would hand the last consent control to
+  // whatever agent is on the page, including one that has been prompt-injected
+  // by the very handoff it just read. A person turns it off with the button.
+  await register({
+    name: "handback_settings",
+    title: "Read or change Handback settings",
+    description:
+      "Read or change this device's Handback settings. Call with no arguments to read them. Pass retentionDays to set how long new handoffs live: 1, 7, 30, or null for never. Pass requireApproval true to switch the human approval gate on, which makes stage_handoff and stage_contribution wait for a click instead of writing immediately. requireApproval false is refused by design: only a person can switch the gate off, using the control on the page.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        retentionDays: {
+          type: ["integer", "null"],
+          description: "Days a new handoff lives, measured from its last change. 1, 7, 30, or null to never expire.",
+        },
+        requireApproval: {
+          type: "boolean",
+          description: "true switches the approval gate on. false is refused; a person must do that on the page.",
+        },
+      },
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, untrustedContentHint: false },
+    execute: async (input: { retentionDays?: number | null; requireApproval?: boolean } | undefined) => {
+      const patch = input ?? {};
+      if (patch.requireApproval === undefined && patch.retentionDays === undefined) {
+        return toToolResult({ status: "ok", settings: bridge.readSettings() });
+      }
+      const result = bridge.writeSettings(patch);
+      if ("status" in result && result.status === "refused") return toToolResult(result);
+      return toToolResult({ status: "ok", settings: result });
     },
   });
 

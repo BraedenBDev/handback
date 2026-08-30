@@ -75,13 +75,13 @@ const listTools = (page: Page) =>
     return mc ? (await mc.getTools()).map((t: any) => t.name).sort() : [];
   });
 
-test("registers exactly the four staging tools, and no approve or commit tool", async ({ page }) => {
+test("registers exactly the five tools, and no approve or commit tool", async ({ page }) => {
   await installWebMcp(page);
   await page.goto("/");
   await expect(page.getByText("WebMCP tools registered")).toBeVisible();
 
   const tools = await listTools(page);
-  expect(tools).toEqual(["get_handoff_receipt", "read_handoff", "stage_contribution", "stage_handoff"]);
+  expect(tools).toEqual(["get_handoff_receipt", "handback_settings", "read_handoff", "stage_contribution", "stage_handoff"]);
   // The consent boundary, asserted rather than assumed.
   expect(tools.some((n: string) => /approve|commit|publish|delete|revoke/.test(n))).toBe(false);
 });
@@ -170,4 +170,41 @@ test("without WebMCP the page still works by hand", async ({ page }) => {
   await page.getByRole("button", { name: "Stage handoff" }).click();
   await page.getByRole("button", { name: "Approve and create" }).click();
   await expect(page.locator("input.link")).toBeVisible();
+});
+
+test("an agent can switch the approval gate on, and cannot switch it off", async ({ page }) => {
+  await installWebMcp(page);
+  await page.goto("/");
+  await expect(page.getByText("Auto-approving.")).toBeVisible();
+
+  // Raising the bar is allowed, and the UI follows the store rather than only
+  // its own button.
+  const on = await callTool(page, "handback_settings", { requireApproval: true });
+  expect(on.settings.requireApproval).toBe(true);
+  await expect(page.getByText("Approval required.")).toBeVisible();
+
+  // Lowering it is refused. This is the whole consent boundary now that
+  // auto-approval is the default: a person can opt in to review, and no tool
+  // call can opt them back out.
+  const off = await callTool(page, "handback_settings", { requireApproval: false });
+  expect(off.status).toBe("refused");
+  expect(off.reason).toBe("human_only");
+  await expect(page.getByText("Approval required.")).toBeVisible();
+
+  // And the gate it turned on actually gates.
+  const staged = await callTool(page, "stage_handoff", { objective: "Gated by the agent", summary: "s" });
+  expect(staged.status).toBe("staged_awaiting_human_approval");
+});
+
+test("an agent can set the retention window, and bad values are refused", async ({ page }) => {
+  await installWebMcp(page);
+  await page.goto("/");
+
+  expect((await callTool(page, "handback_settings", {})).settings.retentionDays).toBe(7);
+  expect((await callTool(page, "handback_settings", { retentionDays: 30 })).settings.retentionDays).toBe(30);
+  expect((await callTool(page, "handback_settings", { retentionDays: null })).settings.retentionDays).toBeNull();
+
+  const bad = await callTool(page, "handback_settings", { retentionDays: 4000 });
+  expect(bad.status).toBe("refused");
+  expect(bad.reason).toBe("invalid_retention");
 });

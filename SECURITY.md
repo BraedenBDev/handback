@@ -28,6 +28,11 @@ hackathon project with no production users, so there is no embargo process.
   says nothing about who made a change.
 - **Contributions only add.** No delete operation exists, since a reviewer will
   spot added text long before they notice text that went missing.
+- **`handback_settings` is one-way on the gate.** An agent can call it with
+  `requireApproval: true` to put a human back in the loop, and
+  `requireApproval: false` is refused with `reason: "human_only"`. That
+  asymmetry is the point: it means the approval gate is the one control an agent
+  on the page can never remove, however it was instructed.
 - **Auto-approval is the default, and it is the weakest point in the design.**
   `stage_handoff` creates and returns a link in one tool call with no human in
   the loop, so an agent that has been prompt-injected can publish the

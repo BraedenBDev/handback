@@ -39,6 +39,8 @@ function installFakeModelContext() {
 
 function makeBridge(overrides: Partial<WebMcpBridge> = {}): WebMcpBridge {
   return {
+    readSettings: () => ({ requireApproval: false, retentionDays: 7 }),
+    writeSettings: () => ({ requireApproval: false, retentionDays: 7 }),
     stageHandoff: vi.fn(),
     getReceipt: () => ({ status: "pending" }),
     readHandoff: () => ({ objective: "o" }),
@@ -63,7 +65,7 @@ describe("tool registration", () => {
     const registered = installFakeModelContext();
     await registerHandbackTools(makeBridge());
     expect(registered.map((t) => t.name).sort()).toEqual([
-      "get_handoff_receipt", "read_handoff", "stage_contribution", "stage_handoff",
+      "get_handoff_receipt", "handback_settings", "read_handoff", "stage_contribution", "stage_handoff",
     ]);
     delete (window as any).modelContext;
   });

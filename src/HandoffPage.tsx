@@ -7,7 +7,7 @@ import { stampDocument, verifyDocument, type SealVerdict } from "./hash.ts";
 import { downloadFile, toMarkdown, toPortableJson } from "./export.ts";
 import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
 import { describeExpiry } from "../shared/expiry.ts";
-import { readAutoApprove } from "./auto-approve.ts";
+import { readAutoApprove, writeAutoApprove } from "./auto-approve.ts";
 import { ApprovalMode, ErrorNote, Field, HistoryView, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
 
 export function HandoffPage({ id }: { id: string }) {
@@ -68,6 +68,27 @@ export function HandoffPage({ id }: { id: string }) {
 
   useEffect(() => {
     const bridge: WebMcpBridge = {
+      readSettings: () => ({ requireApproval: !readAutoApprove(), retentionDays: null }),
+      writeSettings: (next) => {
+        if (next.requireApproval === false) {
+          return {
+            status: "refused" as const,
+            reason: "human_only",
+            message:
+              "The approval gate can only be switched off by a person, using the control on this page. A tool call can switch it on.",
+          };
+        }
+        if (next.retentionDays !== undefined) {
+          return {
+            status: "refused" as const,
+            reason: "wrong_page",
+            message:
+              "Retention belongs to the handoff and was set when it was created. This page contributes to an existing one; the window slides on each new version rather than being chosen again.",
+          };
+        }
+        if (next.requireApproval === true) writeAutoApprove(false);
+        return { requireApproval: !readAutoApprove(), retentionDays: null };
+      },
       stageHandoff: () => ({
         status: "refused" as const,
         reason: "wrong_page",

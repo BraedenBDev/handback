@@ -17,11 +17,13 @@ const ITEMS: Item[] = [
     ),
   },
   {
-    heading: "It drafts, you review",
+    heading: "It packages and saves",
     body: (
       <p>
         Your agent doesn't hand over a wall of prose. It packages the current state (objective, decisions made, constraints, open tasks,
-        unresolved questions) as structured data and shows you the draft first. Nothing is saved yet.
+        unresolved questions) as structured data, saves it, and gets the link back in the same call. If you would rather see every handoff
+        before it is written, switch on approval and it shows you the draft and waits for your click instead. Your agent can switch that on
+        for you; only you can switch it back off.
       </p>
     ),
   },
@@ -31,7 +33,7 @@ const ITEMS: Item[] = [
       <>
         <span className="explainer-badge">Encrypted before it leaves your browser</span>
         <p>
-          You approve, and your browser encrypts the content locally, before any of it leaves your machine. The decryption key lives only
+          Your browser encrypts the content locally, before any of it leaves your machine. The decryption key lives only
           in the URL fragment, the part after the <code className="explainer-inline-code">#</code>, which browsers never transmit to a
           server. So the server only ever holds ciphertext it can't read. You get exactly one link.
         </p>
@@ -51,9 +53,10 @@ const ITEMS: Item[] = [
     heading: "It keeps going",
     body: (
       <p>
-        When the new agent has changes, it proposes them as a diff against the exact version it read. A human approves (the same gate as
-        before, on both ends), and a new sealed version gets created. That can repeat indefinitely, the same link accumulating versions
-        across however many hops. Every version stays, so reopening the link later shows exactly what happened while you were away.
+        When the new agent has changes, it proposes them as a diff against the exact version it read, and a new sealed version gets
+        written. That can repeat indefinitely, the same link accumulating versions across however many hops. With approval switched on, a
+        person sees each diff first, on either end independently. Every version stays either way, so reopening the link later shows exactly
+        what happened while you were away.
       </p>
     ),
   },
@@ -66,7 +69,7 @@ const ITEMS: Item[] = [
  *  reach them. */
 const FLOW_STEPS = [
   { n: "01", label: "You ask", cx: 60, edge: "tell your agent" },
-  { n: "02", label: "It drafts", cx: 210, edge: "you approve" },
+  { n: "02", label: "It packages", cx: 210, edge: "saved at once" },
   { n: "03", label: "One link", cx: 360, edge: "share the link" },
   { n: "04", label: "They open it", cx: 510, edge: "picks it up" },
   { n: "05", label: "It continues", cx: 660 },
@@ -97,7 +100,7 @@ function ExplainerFlow() {
         <path d="M530 40 H640" className="explainer-flow-line" markerEnd="url(#flow-arrow)" />
 
         <text x="135" y="28" textAnchor="middle" className="explainer-flow-arrow-label">tell your agent</text>
-        <text x="285" y="28" textAnchor="middle" className="explainer-flow-arrow-label">you approve</text>
+        <text x="285" y="28" textAnchor="middle" className="explainer-flow-arrow-label">saved at once</text>
         <text x="435" y="28" textAnchor="middle" className="explainer-flow-arrow-label">share the link</text>
         <text x="585" y="28" textAnchor="middle" className="explainer-flow-arrow-label">picks it up</text>
 
