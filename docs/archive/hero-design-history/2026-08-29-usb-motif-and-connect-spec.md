@@ -4,7 +4,7 @@
 > USB, watermark, masthead mark) went through several more rounds after
 > this spec and ended up somewhere different: no object metaphor at all —
 > a scripted dialogue in a browser-window frame (see
-> `docs/superpowers/specs/2026-08-30-dialogue-hero.md`). The **masthead
+> `docs/archive/hero-design-history/2026-08-30-dialogue-hero-spec.md`). The **masthead
 > mark** and **connect-flash / `useConnectSequence`** sections below are
 > still accurate — that subsystem survived the hero rewrites unchanged.
 > Only the hero-object sections (the 3D face system, the USB-specific

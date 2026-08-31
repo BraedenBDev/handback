@@ -4,7 +4,7 @@
 > (masthead mark, connect-flash) is still live and accurate. Task 3 (the
 > Hero component) describes a CSS 3D USB object that was rewritten several
 > times after this and no longer exists — see
-> `docs/superpowers/specs/2026-08-30-dialogue-hero.md` for what replaced
+> `docs/archive/hero-design-history/2026-08-30-dialogue-hero-spec.md` for what replaced
 > it. Kept as the historical record of how the surviving parts were built.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -15,7 +15,7 @@
 
 **Tech Stack:** React 19, Vite, vanilla `three` (new dependency, dynamically imported — no `@react-three/fiber`), Vitest + Testing Library, Playwright + `@axe-core/playwright`.
 
-**Spec:** `docs/superpowers/specs/2026-08-29-usb-motif-and-connect.md`
+**Spec:** `docs/archive/hero-design-history/2026-08-29-usb-motif-and-connect-spec.md`
 
 ## Global Constraints
 

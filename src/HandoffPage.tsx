@@ -10,6 +10,9 @@ import { describeExpiry } from "../shared/expiry.ts";
 import { readAutoApprove, writeAutoApprove } from "./auto-approve.ts";
 import { ApprovalMode, ErrorNote, Field, HistoryView, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
 
+/** Shared by every WebMCP bridge method that has nothing to report yet because decryption hasn't finished. */
+const NOT_DECRYPTED_YET = "This handoff has not finished decrypting yet. Try again in a moment.";
+
 export function HandoffPage({ id }: { id: string }) {
   const [doc, setDoc] = useState<HandoffDocument | null>(null);
   const [seal, setSeal] = useState<SealVerdict>("verified");
@@ -103,11 +106,11 @@ export function HandoffPage({ id }: { id: string }) {
         if (current) return { status: "created" as const, url: location.href, version: current.version };
         // Not "pending": nobody is being asked to approve anything here, the
         // page just has not finished decrypting yet.
-        return { status: "none" as const, message: "This handoff has not finished decrypting yet. Try again in a moment." };
+        return { status: "none" as const, message: NOT_DECRYPTED_YET };
       },
       readHandoff: (sections: ReadSection[]) => {
         const current = latest.current.doc;
-        if (!current) return { error: "This handoff has not finished decrypting yet." };
+        if (!current) return { error: NOT_DECRYPTED_YET };
         const picked: Record<string, unknown> = { version: current.version };
         for (const section of sections) picked[section] = current.state[section] ?? null;
         return picked;
@@ -118,7 +121,7 @@ export function HandoffPage({ id }: { id: string }) {
           return {
             status: "refused" as const,
             reason: "not_ready",
-            message: "This handoff has not finished decrypting yet. Try again in a moment.",
+            message: NOT_DECRYPTED_YET,
           };
         }
         if (contribution.baseVersion !== current.version) {

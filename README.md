@@ -205,6 +205,7 @@ Migrations rename rather than drop, so you can reverse them.
 - [docs/WEBMCP-COMPATIBILITY.md](docs/WEBMCP-COMPATIBILITY.md) is for anyone implementing WebMCP: where the entry point has moved, what the output limits are, and why nothing here throws.
 - [docs/DESIGN.md](docs/DESIGN.md) explains the typography, the colour, and the seal.
 - [docs/PRIOR-ART-AND-NOGO.md](docs/PRIOR-ART-AND-NOGO.md) lists what was researched and rejected. Read it before proposing a feature.
+- [docs/archive/](docs/archive/) holds pre-build ideation, naming, and spec drafts, kept for the record. None of it describes current behaviour; start with the docs above instead.
 
 ## Layout
 
@@ -217,7 +218,8 @@ src/webmcp.ts        The five tool registrations
 src/contribution.ts  Pure apply-a-contribution logic
 worker/index.ts      The Cloudflare Worker: API and asset serving
 migrations/          Schema, applied in order to a fresh database
-docs/                Product brief, design, prior art, WebMCP compatibility
+docs/                Design rationale, prior art, WebMCP compatibility notes
+docs/archive/        Pre-build product brief, naming, and spec drafts
 ```
 
 ## License

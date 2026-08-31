@@ -284,7 +284,8 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
       if (outcome) return toToolResult(outcome);
       return toToolResult({
         status: "staged_awaiting_human_approval",
-        message: "Draft is on screen. The human reviews and clicks Approve and create.",
+        message:
+          "Draft is on screen and the human clicks Approve and create. Tell them to do it now: the draft is held in this page only, so closing or reloading the tab discards it and nothing was sent to the server. If you cannot keep the tab alive, say so rather than reporting the handoff as saved.",
       });
     },
   });
@@ -364,7 +365,8 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
         status: "staged_awaiting_human_approval",
         baseVersion: staged.baseVersion,
         operationCount: staged.operationCount,
-        message: "Diff is on screen. The human reviews and clicks Approve contribution.",
+        message:
+          "Diff is on screen and the human clicks Approve contribution. Tell them to do it now: the proposal is held in this page only, so closing or reloading the tab discards it.",
       });
     },
   });

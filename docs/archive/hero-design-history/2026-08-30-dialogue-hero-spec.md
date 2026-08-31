@@ -14,7 +14,7 @@ second replacement of the original hero concept; see History below.
 
 The masthead mark and the WebGL connect-flash that fires once per page
 mount are unchanged from the previous spec
-(`docs/superpowers/specs/2026-08-29-usb-motif-and-connect.md`) and are only
+(`docs/archive/hero-design-history/2026-08-29-usb-motif-and-connect-spec.md`) and are only
 summarized here for completeness — that spec's masthead-mark and
 connect-flash sections remain the accurate description.
 
@@ -264,7 +264,7 @@ The hero has been rebuilt twice since the product's initial MVP. It began
 as a CSS-only 3D USB-drive object (`3b0699a feat(create): add the hero
 USB, shown only on a fresh visit`, and refined across several follow-up
 commits), documented in the original
-`docs/superpowers/specs/2026-08-29-usb-motif-and-connect.md`. That was
+`docs/archive/hero-design-history/2026-08-29-usb-motif-and-connect-spec.md`. That was
 replaced with a floating browser window cycling through a carousel of
 provider logos (`ab17c72 feat(create): browser window + provider carousel,
 replacing the USB motif`, with further passes in `0f01046` and `20b5172`).

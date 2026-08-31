@@ -97,6 +97,10 @@ test("an agent stages, a human approves, and only then does a link exist", async
     tasks: [{ title: "Approve it", status: "todo" }],
   });
   expect(staged.status).toBe("staged_awaiting_human_approval");
+  // The agent has to be able to warn its human. A staged draft is page-local
+  // React state: a real session reported "needs your click" and left it sitting
+  // there, one tab close away from losing everything it had packaged.
+  expect(staged.message).toMatch(/closing or reloading the tab discards it/);
 
   // Nothing exists until a human acts.
   expect((await callTool(page, "get_handoff_receipt", {})).status).toBe("pending");
