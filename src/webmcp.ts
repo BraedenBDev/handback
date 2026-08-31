@@ -270,6 +270,19 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
     inputSchema: HANDOFF_STATE_SCHEMA,
     annotations: { readOnlyHint: false, untrustedContentHint: true },
     execute: async (state: HandoffState) => {
+      // retentionDays lives on handback_settings, not here. The schema says so
+      // and nothing enforced it, so a call asking for a one-day window was
+      // silently given the seven-day default and told only that it succeeded.
+      // Refuse as a value, the way every other refusal in this file works, so
+      // the agent can put it right in one more call instead of believing it.
+      if (state && typeof state === "object" && "retentionDays" in state) {
+        return toToolResult({
+          status: "refused",
+          reason: "wrong_tool",
+          message:
+            "retentionDays is not part of a handoff. Call handback_settings with retentionDays first, which sets the window for handoffs created afterwards, then call stage_handoff again without it.",
+        });
+      }
       const outcome = await bridge.stageHandoff(state);
       if (outcome && "status" in outcome && outcome.status === "created") {
         return toToolResult({

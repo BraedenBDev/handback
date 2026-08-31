@@ -137,6 +137,30 @@ test("a reloaded page says nothing is here, rather than claiming a human is abou
   expect((await callTool(page, "get_handoff_receipt", {})).status).toBe("none");
 });
 
+test("asking stage_handoff for a retention window is refused, not silently ignored", async ({ page }) => {
+  // This one bit me: a verification run asked for a one-day window, got the
+  // seven-day default, and was told only that it had succeeded.
+  await installWebMcp(page);
+  await page.goto("/");
+
+  const refused = await callTool(page, "stage_handoff", {
+    objective: "Asking the wrong tool for a short window",
+    summary: "retentionDays belongs to handback_settings.",
+    retentionDays: 1,
+  });
+  expect(refused).toMatchObject({ status: "refused", reason: "wrong_tool" });
+  expect(refused.message).toContain("handback_settings");
+  await expect(page.locator("input.link")).toHaveCount(0);
+
+  // And the route it points at actually works.
+  expect(await callTool(page, "handback_settings", { retentionDays: 1 }))
+    .toMatchObject({ status: "ok", settings: { retentionDays: 1 } });
+  expect((await callTool(page, "stage_handoff", {
+    objective: "Asking the wrong tool for a short window",
+    summary: "Now without it.",
+  })).status).toBe("created");
+});
+
 test("a second agent reads the handoff, contributes, and a human approves", async ({ page }) => {
   await requireApproval(page);
   await installWebMcp(page);
