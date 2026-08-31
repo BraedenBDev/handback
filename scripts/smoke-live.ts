@@ -130,8 +130,15 @@ check(
   "handoff pages are noindex",
   (handoffHeaders.headers.get("x-robots-tag") ?? "").includes("noindex"),
 );
+// robots.txt deliberately does NOT disallow /h/ — noindex is enforced by the
+// X-Robots-Tag header above instead, which a Disallow would prevent a crawler
+// from ever seeing (see public/robots.txt). A naive `.includes("Disallow: /h/")`
+// here used to pass vacuously: that exact string appears inside this file's own
+// explanatory comment, so the check never actually inspected a directive.
 const robots = await (await fetch(`${base}/robots.txt`)).text();
-check("robots.txt disallows handoff pages", robots.includes("Disallow: /h/"));
+const directives = robots.split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("#"));
+check("robots.txt allows crawling /h/ (noindex is the X-Robots-Tag header's job)", directives.includes("Allow: /"));
+check("robots.txt has no real Disallow directive for /h/", !directives.some((line) => line.startsWith("Disallow:")));
 
 const shell = await fetch(`${base}/h/${id}`);
 check("SPA route serves the app shell", shell.status === 200 && (await shell.text()).includes("<div id=\"root\">"));
