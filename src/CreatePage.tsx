@@ -7,7 +7,7 @@ import { ImportError, readPortableFile } from "./import.ts";
 import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
 import { DEFAULT_RETENTION_DAYS, MAX_RETENTION_DAYS, RETENTION_CHOICES, describeExpiry, isValidRetention } from "../shared/expiry.ts";
 import { readAutoApprove, writeAutoApprove } from "./auto-approve.ts";
-import { ApprovalMode, ErrorNote, Field, Masthead, REPOSITORY_URL, Seal, StateView, ToolStatus } from "./ui.tsx";
+import { ApprovalMode, ErrorNote, Field, Masthead, Seal, SiteFooter, StateView, ToolStatus } from "./ui.tsx";
 import { Hero } from "./Hero.tsx";
 import { DemoLinks } from "./DemoLinks.tsx";
 import { Explainer } from "./Explainer.tsx";
@@ -267,21 +267,6 @@ export function CreatePage() {
       <Explainer />
       <SiteFooter />
     </main>
-  );
-}
-
-function SiteFooter() {
-  return (
-    <footer className="site-footer">
-      <span>handback.link</span>
-      <a href={REPOSITORY_URL} target="_blank" rel="noopener noreferrer">
-        <span>github.com/BraedenBDev/handback</span>
-      </a>
-      <a href="/privacy"><span>Privacy</span></a>
-      <a href="/terms"><span>Terms</span></a>
-      <span>MIT</span>
-      <span>Built for the WebMCP Challenge</span>
-    </footer>
   );
 }
 

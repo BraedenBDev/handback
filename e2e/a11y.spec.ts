@@ -45,7 +45,15 @@ async function settle(page: Page) {
   );
 }
 
+/**
+ * Scans run with motion reduced. The hero loops a scripted conversation for as
+ * long as the page is open, so an unreduced scan can always catch a chat bubble
+ * mid-fade and report 1.23:1 on text that is on its way to full contrast. WCAG
+ * does not govern transient animation frames; settle time is covered by its own
+ * test below.
+ */
 const scan = async (page: Page) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await settle(page);
   return new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
 };

@@ -71,6 +71,27 @@ test.describe("the seal", () => {
   });
 });
 
+test.describe("a handoff page is not a dead end", () => {
+  test("offers the way back to handback.link, and the same footer as the front page", async ({ page }) => {
+    const url = await createHandoff(page, "Somewhere to go next");
+    await page.goto(url);
+
+    const back = page.getByRole("link", { name: /handback\.link/ }).first();
+    await expect(back).toBeVisible();
+    // The footer links are held to 44px; this one is a peer of them.
+    expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
+    await expect(page.locator(".site-footer")).toBeVisible();
+    for (const name of ["Privacy", "Terms"]) {
+      await expect(page.locator(".site-footer").getByRole("link", { name })).toBeVisible();
+    }
+
+    await back.click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByLabel("Objective")).toBeVisible();
+  });
+});
+
 test.describe("exports and import", () => {
   test("downloads a portable file and a markdown file", async ({ page }) => {
     const url = await createHandoff(page, "Exportable");

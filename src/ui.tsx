@@ -338,3 +338,31 @@ export function ErrorNote({ error }: { error: string | null }) {
     </p>
   );
 }
+
+/**
+ * The way back out of a handoff. Mirrors the eyebrow on /privacy and /terms so
+ * a handoff page is not a dead end: someone who has just read one usually wants
+ * to make their own next.
+ */
+export function BackToHome() {
+  return (
+    <a className="back-eyebrow" href="/">
+      <span aria-hidden="true">&larr;</span> handback.link
+    </a>
+  );
+}
+
+export function SiteFooter() {
+  return (
+    <footer className="site-footer">
+      <span>handback.link</span>
+      <a href={REPOSITORY_URL} target="_blank" rel="noopener noreferrer">
+        <span>github.com/BraedenBDev/handback</span>
+      </a>
+      <a href="/privacy"><span>Privacy</span></a>
+      <a href="/terms"><span>Terms</span></a>
+      <span>MIT</span>
+      <span>Built for the WebMCP Challenge</span>
+    </footer>
+  );
+}

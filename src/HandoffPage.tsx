@@ -8,7 +8,7 @@ import { downloadFile, toMarkdown, toPortableJson } from "./export.ts";
 import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
 import { describeExpiry } from "../shared/expiry.ts";
 import { readAutoApprove, writeAutoApprove } from "./auto-approve.ts";
-import { ApprovalMode, ErrorNote, Field, HistoryView, Masthead, Seal, StateView, ToolStatus } from "./ui.tsx";
+import { ApprovalMode, BackToHome, ErrorNote, Field, HistoryView, Masthead, Seal, SiteFooter, StateView, ToolStatus } from "./ui.tsx";
 
 /** Shared by every WebMCP bridge method that has nothing to report yet because decryption hasn't finished. */
 const NOT_DECRYPTED_YET = "This handoff has not finished decrypting yet. Try again in a moment.";
@@ -240,6 +240,8 @@ export function HandoffPage({ id }: { id: string }) {
         <Seal version={doc.version} hash={doc.contentHash} verdict={seal} />
       </Masthead>
 
+      <BackToHome />
+
       <div className="content-card">
       <ToolStatus available={webMcp} />
       <ApprovalMode />
@@ -295,6 +297,8 @@ export function HandoffPage({ id }: { id: string }) {
         </div>
       </Field>
       </div>
+
+      <SiteFooter />
     </main>
   );
 }
