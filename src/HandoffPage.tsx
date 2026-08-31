@@ -5,7 +5,7 @@ import { ExpiredError, fetchHandoff, updateHandoff, VersionConflictError } from 
 import { applyContribution, describeContribution, StaleBaseError } from "./contribution.ts";
 import { stampDocument, verifyDocument, type SealVerdict } from "./hash.ts";
 import { downloadFile, toMarkdown, toPortableJson } from "./export.ts";
-import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
+import { isWebMcpAvailable, isWebMcpFallback, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
 import { describeExpiry } from "../shared/expiry.ts";
 import { readAutoApprove, writeAutoApprove } from "./auto-approve.ts";
 import { ApprovalMode, BackToHome, ErrorNote, Field, HistoryView, Masthead, Seal, SiteFooter, StateView, ToolStatus } from "./ui.tsx";
@@ -23,6 +23,7 @@ export function HandoffPage({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [webMcp, setWebMcp] = useState(isWebMcpAvailable);
+  const [fallback, setFallback] = useState(isWebMcpFallback);
 
   // The content key, imported once from the fragment and reused for every later
   // write. Regenerating it on update would invalidate the link already handed
@@ -148,7 +149,9 @@ export function HandoffPage({ id }: { id: string }) {
       // An extension can install WebMCP after this page decided it was absent.
       // Reflect that, rather than leaving the banner telling the user to go
       // enable something that is already working.
-      if (result) setWebMcp(true);
+      if (!result) return;
+      setWebMcp(isWebMcpAvailable());
+      setFallback(isWebMcpFallback());
     });
     return () => controller?.abort();
   }, []);
@@ -243,7 +246,7 @@ export function HandoffPage({ id }: { id: string }) {
       <BackToHome />
 
       <div className="content-card">
-      <ToolStatus available={webMcp} />
+      <ToolStatus available={webMcp} fallback={fallback} />
       <ApprovalMode />
       <ErrorNote error={error} />
 

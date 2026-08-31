@@ -16,6 +16,7 @@ vi.mock("./connect-flash.ts", () => ({
 
 vi.mock("./webmcp.ts", () => ({
   isWebMcpAvailable: () => false,
+  isWebMcpFallback: () => false,
   registerHandbackTools: vi.fn(async () => null),
 }));
 

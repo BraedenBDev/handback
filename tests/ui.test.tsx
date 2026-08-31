@@ -111,6 +111,16 @@ describe("status and errors", () => {
     expect(screen.queryByText(/enable-webmcp-testing/)).toBeNull();
   });
 
+  it("says who registered the tools when the page had to do it itself", () => {
+    // Never "WebMCP tools registered" flat: that would tell a visitor their
+    // browser supports something it does not. Never "not detected" either,
+    // which would send an agent away from tools that are sitting right there.
+    render(<ToolStatus available={false} fallback={true} />);
+    expect(screen.getByText(/registered by this page/)).toBeTruthy();
+    expect(screen.getByText(/does not implement WebMCP/)).toBeTruthy();
+    expect(screen.queryByText(/WebMCP not detected/)).toBeNull();
+  });
+
   it("confirms registration when WebMCP is present", () => {
     render(<ToolStatus available={true} />);
     expect(screen.getByText(/WebMCP tools registered/)).toBeTruthy();

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { clampForAgent, isWebMcpAvailable, registerHandbackTools, toToolResult, type WebMcpBridge } from "../src/webmcp.ts";
+import { clampForAgent, isWebMcpAvailable, isWebMcpFallback, registerHandbackTools, toToolResult, type WebMcpBridge } from "../src/webmcp.ts";
 import { HANDOFF_STATE_SCHEMA, CONTRIBUTION_SCHEMA } from "../shared/schema.ts";
 import { unwrap } from "./tool-result.ts";
 
@@ -83,8 +83,13 @@ describe("entry point, across every place it has lived", () => {
     vi.useFakeTimers();
     try {
       const pending = registerHandbackTools(bridge());
-      await vi.advanceTimersByTimeAsync(11_000);
-      await expect(pending).resolves.toBeNull();
+      await vi.advanceTimersByTimeAsync(2_000);
+      await pending;
+      // The clobbered property is replaced rather than trusted, and the browser
+      // is still correctly reported as having no WebMCP of its own.
+      expect(isWebMcpAvailable()).toBe(false);
+      expect(isWebMcpFallback()).toBe(true);
+      expect((await (document as any).modelContext.getTools()).length).toBe(5);
     } finally {
       vi.useRealTimers();
     }
@@ -97,13 +102,18 @@ describe("entry point, across every place it has lived", () => {
     expect(registered).toHaveLength(0);
   });
 
-  it("reports unavailable rather than throwing when there is no WebMCP at all", async () => {
+  it("installs its own registry when there is no WebMCP at all", async () => {
+    // The ChatGPT agent-mode case: a sandboxed Chromium with no origin trial
+    // and no extension. Before the fallback existed, an agent told exactly
+    // where to look found document.modelContext undefined and gave up.
     expect(isWebMcpAvailable()).toBe(false);
     vi.useFakeTimers();
     try {
       const pending = registerHandbackTools(bridge());
-      await vi.advanceTimersByTimeAsync(11_000);
-      await expect(pending).resolves.toBeNull();
+      await vi.advanceTimersByTimeAsync(2_000);
+      await expect(pending).resolves.not.toBeNull();
+      expect(isWebMcpAvailable()).toBe(false); // the browser still has none
+      expect(isWebMcpFallback()).toBe(true); // but the tools are reachable
     } finally {
       vi.useRealTimers();
     }
@@ -324,15 +334,101 @@ describe("an API injected after mount is still picked up", () => {
     }
   });
 
-  it("gives up after ten seconds rather than polling forever", async () => {
+  it("adopts a host that arrives after the fallback is already installed", async () => {
+    // An extension that checks `if (!document.modelContext)` would find OUR
+    // object and back off, so its bridge would expose nothing. Installing the
+    // fallback must not end the search.
     vi.useFakeTimers();
     try {
       const pending = registerHandbackTools(bridge());
-      await vi.advanceTimersByTimeAsync(11_000);
-      await expect(pending).resolves.toBeNull();
+      await vi.advanceTimersByTimeAsync(2_000);
+      await pending;
+      expect(isWebMcpFallback()).toBe(true);
+
+      const { registered, context } = fakeContext();
+      (document as any).modelContext = context;
+      await vi.advanceTimersByTimeAsync(600);
+      expect(registered).toHaveLength(5);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("stops watching after ten seconds rather than polling forever", async () => {
+    vi.useFakeTimers();
+    try {
+      const pending = registerHandbackTools(bridge());
+      await vi.advanceTimersByTimeAsync(2_000);
+      await pending;
+      expect(vi.getTimerCount()).toBeGreaterThan(0);
+      await vi.advanceTimersByTimeAsync(11_000);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("the fallback registry speaks the same protocol as Chrome", () => {
+  /** Installs the fallback and hands back whatever landed on the document. */
+  async function installed() {
+    vi.useFakeTimers();
+    try {
+      const pending = registerHandbackTools(bridge());
+      await vi.advanceTimersByTimeAsync(2_000);
+      await pending;
+    } finally {
+      vi.useRealTimers();
+    }
+    return (document as any).modelContext;
+  }
+
+  it("lists the same five tools, with their schemas intact", async () => {
+    const tools = await (await installed()).getTools();
+    expect(tools.map((t: any) => t.name).sort()).toEqual([
+      "get_handoff_receipt", "handback_settings", "read_handoff", "stage_contribution", "stage_handoff",
+    ]);
+    for (const tool of tools) expect(tool.inputSchema).toBeTruthy();
+  });
+
+  it("executes with Chrome's convention: the tool object and a JSON string", async () => {
+    const context = await installed();
+    const tools = await context.getTools();
+    const receipt = tools.find((t: any) => t.name === "get_handoff_receipt");
+    const raw = await context.executeTool(receipt, JSON.stringify({}));
+    // A string back, exactly as Chrome 149 returns it.
+    expect(typeof raw).toBe("string");
+    expect(JSON.parse(raw)).toHaveProperty("content");
+  });
+
+  it("also accepts a bare tool name and an already-parsed object", async () => {
+    // Divergence from Chrome, on purpose. An agent that reaches for the obvious
+    // shape should get an answer rather than a type error it cannot interpret.
+    const context = await installed();
+    const raw = await context.executeTool("get_handoff_receipt", { });
+    expect(JSON.parse(raw)).toHaveProperty("content");
+    expect(JSON.parse(await context.executeTool("get_handoff_receipt"))).toHaveProperty("content");
+  });
+
+  it("names the tool it could not find, instead of a generic type error", async () => {
+    const context = await installed();
+    await expect(context.executeTool("no_such_tool", "{}")).rejects.toThrow(/no_such_tool/);
+  });
+
+  it("removes its tools when the page tears the registration down", async () => {
+    vi.useFakeTimers();
+    let controller;
+    try {
+      const pending = registerHandbackTools(bridge());
+      await vi.advanceTimersByTimeAsync(2_000);
+      controller = await pending;
+    } finally {
+      vi.useRealTimers();
+    }
+    const context = (document as any).modelContext;
+    expect((await context.getTools()).length).toBe(5);
+    controller!.abort();
+    expect((await context.getTools()).length).toBe(0);
   });
 });
 

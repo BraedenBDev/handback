@@ -273,13 +273,29 @@ export function HistoryView({ doc }: { doc: HandoffDocument }) {
   );
 }
 
-export function ToolStatus({ available }: { available: boolean }) {
+/**
+ * Three states, because there are three. `available` is the browser's own
+ * WebMCP; `fallback` is the registry this page installs where the browser has
+ * none. Collapsing the second into the first would tell a visitor their browser
+ * supports something it does not, and collapsing it into "not detected" would
+ * send an agent away from tools that are sitting right there.
+ */
+export function ToolStatus({ available, fallback = false }: { available: boolean; fallback?: boolean }) {
+  const on = available || fallback;
   return (
-    <div className={`strip ${available ? "strip-on" : "strip-off"}`}>
+    <div className={`strip ${on ? "strip-on" : "strip-off"}`}>
       {available ? (
         <>
           <b>WebMCP tools registered.</b>
           <span>Ask your agent to hand this work off.</span>
+        </>
+      ) : fallback ? (
+        <>
+          <b>WebMCP tools registered by this page.</b>
+          <span>
+            Your browser does not implement WebMCP, so Handback installed the registry itself. Any agent that can run
+            JavaScript here reaches the same five tools at <code>document.modelContext</code>.
+          </span>
         </>
       ) : (
         <>

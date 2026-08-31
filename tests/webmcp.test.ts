@@ -70,12 +70,13 @@ describe("tool registration", () => {
     delete (window as any).modelContext;
   });
 
-  it("returns null and registers nothing when WebMCP is absent", async () => {
+  it("installs its own registry when WebMCP is absent, so an agent still has a route", async () => {
     vi.useFakeTimers();
     try {
       const pending = registerHandbackTools(makeBridge());
-      await vi.advanceTimersByTimeAsync(11_000);
-      await expect(pending).resolves.toBeNull();
+      await vi.advanceTimersByTimeAsync(2_000);
+      await expect(pending).resolves.not.toBeNull();
+      expect((await (document as any).modelContext.getTools()).length).toBe(5);
     } finally {
       vi.useRealTimers();
     }

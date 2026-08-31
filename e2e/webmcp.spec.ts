@@ -215,12 +215,34 @@ test("a second agent reads the handoff, contributes, and a human approves", asyn
 
 test("without WebMCP the page still works by hand", async ({ page }) => {
   await page.goto("/"); // no mock installed
-  await expect(page.getByText("WebMCP not detected")).toBeVisible();
+  await expect(page.getByText("WebMCP tools registered by this page")).toBeVisible();
   await page.getByLabel("Objective").fill("Typed by a human");
   await page.getByLabel("Where the work stands").fill("No agent involved.");
   await page.getByRole("button", { name: "Stage handoff" }).click();
   await page.getByRole("button", { name: "Approve and create" }).click();
   await expect(page.locator("input.link")).toBeVisible();
+});
+
+test("in a browser with no WebMCP at all, an agent still reaches the tools", async ({ page }) => {
+  // The ChatGPT agent-mode case, reproduced: a plain browser, no origin trial,
+  // no extension, no mock. It was told exactly where to look, found
+  // document.modelContext undefined, and gave up. The page installs its own
+  // registry so that anything able to run JavaScript here has a route.
+  await page.goto("/");
+  await expect(page.getByText("WebMCP tools registered by this page")).toBeVisible();
+
+  const names = await listTools(page);
+  expect(names).toEqual(["get_handoff_receipt", "handback_settings", "read_handoff", "stage_contribution", "stage_handoff"]);
+
+  // Auto-approval is the default, so this returns the link in the same call
+  // with no click anywhere — which is the whole point of the exercise.
+  const created = await callTool(page, "stage_handoff", {
+    objective: "Reached through the page's own registry",
+    summary: "No browser support, no extension, no human click.",
+  });
+  expect(created.status).toBe("created");
+  expect(created.url).toContain("#k=");
+  await expect(page.locator("input.link")).toHaveValue(created.url);
 });
 
 test("an agent can switch the approval gate on, and cannot switch it off", async ({ page }) => {

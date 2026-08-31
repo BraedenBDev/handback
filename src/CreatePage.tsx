@@ -4,7 +4,7 @@ import { buildHandoffUrl, encryptDocument, exportKey, generateKey } from "./cryp
 import { createHandoff } from "./api.ts";
 import { stampDocument } from "./hash.ts";
 import { ImportError, readPortableFile } from "./import.ts";
-import { isWebMcpAvailable, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
+import { isWebMcpAvailable, isWebMcpFallback, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
 import { DEFAULT_RETENTION_DAYS, MAX_RETENTION_DAYS, RETENTION_CHOICES, describeExpiry, isValidRetention } from "../shared/expiry.ts";
 import { readAutoApprove, writeAutoApprove } from "./auto-approve.ts";
 import { ApprovalMode, ErrorNote, Field, Masthead, Seal, SiteFooter, StateView, ToolStatus } from "./ui.tsx";
@@ -21,6 +21,7 @@ export function CreatePage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [webMcp, setWebMcp] = useState(isWebMcpAvailable);
+  const [fallback, setFallback] = useState(isWebMcpFallback);
   const [heroExited, setHeroExited] = useState(false);
   const showHero = !draft && !created;
 
@@ -97,7 +98,9 @@ export function CreatePage() {
       // An extension can install WebMCP after this page decided it was absent.
       // Reflect that, rather than leaving the banner telling the user to go
       // enable something that is already working.
-      if (result) setWebMcp(true);
+      if (!result) return;
+      setWebMcp(isWebMcpAvailable());
+      setFallback(isWebMcpFallback());
     });
     return () => controller?.abort();
   }, []);
@@ -214,7 +217,7 @@ export function CreatePage() {
       {showHero ? <Hero onExit={() => setHeroExited(true)} /> : null}
       <Masthead connect={heroExited || created !== null} />
       <div className="content-card">
-      <ToolStatus available={webMcp} />
+      <ToolStatus available={webMcp} fallback={fallback} />
       <ApprovalMode />
       <ErrorNote error={error} />
       {notice ? <p className="caution">{notice}</p> : null}

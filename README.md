@@ -165,10 +165,16 @@ faithful.
 
 ### Browser setup
 
-WebMCP needs Chrome 149+ with `chrome://flags/#enable-webmcp-testing` on, or
-ChatGPT's in-app browser. Without either, the page still works: every flow has a
-visible manual form, contributions included. It just cannot be driven by an
-agent.
+Native WebMCP means Chrome 149+ (the deployed site runs the origin trial, so no
+flag is needed there; locally, `chrome://flags/#enable-webmcp-testing`), or
+ChatGPT's desktop browser with Site tools on.
+
+Without either, the page installs the registry itself. `document.modelContext`
+gets the same five tools with the same calling convention, so any agent that can
+run JavaScript on the page still drives it — that is the only route in a
+sandboxed agent-mode browser, which has neither the trial nor an extension. The
+status strip says which of the two is in play, and every flow also has a visible
+manual form, contributions included.
 
 Driving the tools from a console has two non-obvious requirements, and
 `ModelContext` is a moving target. See

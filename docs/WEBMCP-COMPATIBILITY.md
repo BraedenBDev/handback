@@ -78,6 +78,36 @@ when nobody was; it now returns `none` with a message saying the link lives in
 page memory. The broader rule: an agent should treat a returned identifier as
 the only copy, and a tool description is the right place to say so.
 
+## Seventh: a browser without WebMCP left agents with no route at all
+
+Found on 2026-09-01, in the wild again. A ChatGPT agent-mode session was told
+exactly where to look — "call `document.modelContext`'s `stage_handoff`" — and
+came back with the property undefined and nothing done. Its browser is a
+sandboxed Chromium in OpenAI's cloud: no origin trial, no extension, and no way
+for the page to change either.
+
+The fallback at that point was a person typing in a form, which is not an agent
+story. So the page now installs the registry itself when the browser ships none:
+same three methods, same calling convention, same five tools. The official
+`@mcp-b/webmcp-polyfill` does the same thing. `isWebMcpAvailable()` still means
+*the browser* has WebMCP and stays false here; `isWebMcpFallback()` is the other
+case, and the status strip prints a different sentence for each so nobody reads
+"registered" as browser support.
+
+Two things this had to get right, neither obvious:
+
+- **Don't make agents wait.** The ten-second poll for late-injecting extensions
+  used to run *before* concluding WebMCP was absent. Spending all of it up front
+  would leave a plain browser with no tools for its first ten seconds, which is
+  most of an agent's patience. The grace window is 1.5s; the rest of the poll
+  continues afterwards.
+- **Don't lock an extension out.** A client that checks `if
+  (!document.modelContext)` before installing would find *our* object and back
+  off, leaving its bridge with nothing. So the fallback does not end the search:
+  a foreign context appearing inside the remaining window gets every tool
+  registered into it as well, and the property is left `configurable` and
+  `writable` so it can be taken over outright.
+
 **Status at 2026-08-27:** Chrome origin trial 149 to 156, expiring 2026-11-17.
 Edge origin trial from 150. ChatGPT's in-app browser supported. Brave
 experimental through Leo. Perplexity Comet and Claude in Chrome do *not* consume

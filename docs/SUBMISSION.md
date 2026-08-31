@@ -11,9 +11,12 @@ Two things still need a human:
   `<meta http-equiv="origin-trial" content="…">` in `index.html` above the
   JSON-LD block, and an `Origin-Trial:` header under `/*` in `public/_headers`.
   Verify in a clean Chrome profile with no flags set: the banner should read
-  detected, not "WebMCP not detected". The trial runs Chrome 149–156 and expires
-  2026-11-17, comfortably past judging. Without it, every judge on stock Chrome
-  is shown the fallback form instead of the product.
+  "WebMCP tools registered.", the native wording. "WebMCP tools registered by
+  this page." means the trial is not applying and the page's own fallback
+  registry picked up the slack — the tools still work, but through the polyfill
+  rather than the browser, which is not what a WebMCP submission wants on
+  screen. The trial runs Chrome 149–156 and expires 2026-11-17, comfortably past
+  judging.
 - **The video.** Shot list is in the section at the end of this file.
 
 ---

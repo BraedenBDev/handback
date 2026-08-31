@@ -195,8 +195,24 @@ export function clampForAgent(
   };
 }
 
+/**
+ * True only when the BROWSER supplies WebMCP.
+ *
+ * Deliberately false when the page's own fallback registry is what is standing
+ * at `document.modelContext`. The status strip tells a visitor which browser
+ * they are in, and answering "yes, WebMCP" because we installed the object
+ * ourselves would make that strip a lie. Ask `isWebMcpFallback()` for the
+ * other case.
+ */
 export function isWebMcpAvailable(): boolean {
-  return resolveModelContext() !== null;
+  const context = resolveModelContext();
+  return context !== null && !isOurs(context);
+}
+
+/** True when the tools are reachable, but through the page's own registry. */
+export function isWebMcpFallback(): boolean {
+  const context = resolveModelContext();
+  return context !== null && isOurs(context);
 }
 
 /**
@@ -231,11 +247,29 @@ export function toToolResult(value: unknown): unknown {
  * API is absent. Google's own hook and vue-webmcp independently settled on the
  * same answer: re-check on an interval for ten seconds. Without it, a page that
  * mounts a fraction too early registers nothing and never retries.
+ *
+ * The ten seconds is no longer spent BEFORE the fallback goes in. A browser
+ * with no WebMCP at all would then have no tools for its first ten seconds,
+ * which is most of an agent's patience, for the sake of an extension that in
+ * practice injects at document_start. So the grace window is short, the
+ * fallback follows it, and the remaining attempts keep watching (see
+ * `registerIntoLateHost`).
  */
 const LATE_INJECTION_INTERVAL_MS = 500;
 const LATE_INJECTION_ATTEMPTS = 20;
+const FALLBACK_GRACE_ATTEMPTS = 3;
 
-export function whenModelContextReady(signal: AbortSignal): Promise<ModelContext | null> {
+type RegisteredTool = Parameters<ModelContext["registerTool"]>[0];
+
+/** Set on the registry this page installs, so it is never mistaken for a host. */
+const FALLBACK_FLAG = "isHandbackFallback";
+
+function isOurs(context: ModelContext): boolean {
+  return (context as unknown as Record<string, unknown>)[FALLBACK_FLAG] === true;
+}
+
+/** Waits a short grace window for a host to appear, then gives up. */
+function whenHostReady(signal: AbortSignal): Promise<ModelContext | null> {
   const immediate = resolveModelContext();
   if (immediate) return Promise.resolve(immediate);
 
@@ -243,7 +277,7 @@ export function whenModelContextReady(signal: AbortSignal): Promise<ModelContext
     let attempts = 0;
     const timer = setInterval(() => {
       const found = resolveModelContext();
-      if (found || ++attempts >= LATE_INJECTION_ATTEMPTS || signal.aborted) {
+      if (found || ++attempts >= FALLBACK_GRACE_ATTEMPTS || signal.aborted) {
         clearInterval(timer);
         resolve(found ?? null);
       }
@@ -252,12 +286,102 @@ export function whenModelContextReady(signal: AbortSignal): Promise<ModelContext
   });
 }
 
+/**
+ * The page's own WebMCP registry, installed only where the browser ships none.
+ *
+ * Without it, an agent in a browser that has never heard of WebMCP has NO route
+ * to these tools. The only fallback was a person typing in the form, which is
+ * not an agent story at all. A real ChatGPT agent-mode session, told exactly
+ * where to look, reported back that `document.modelContext` was unavailable and
+ * gave up: its browser is a sandboxed Chromium with no origin trial and no
+ * extension, and nothing about the page could have changed that.
+ *
+ * So the page installs the object itself, with the same three methods and the
+ * same calling convention. Any agent that can run JavaScript on the page then
+ * reaches the same five tools it would have reached natively. This is what the
+ * official @mcp-b/webmcp-polyfill does — a polyfill of a spec API, not a claim
+ * that the browser implements one, which is why the strip keeps saying so.
+ *
+ * Two divergences from Chrome, both deliberate and both toward the agent
+ * getting somewhere. `executeTool` takes the tool's NAME as readily as the
+ * RegisteredTool object, and an already-parsed object as readily as a JSON
+ * string. And a throw out of `execute` keeps its message rather than being
+ * flattened to UnknownError, which the spec still has open as a TODO.
+ */
+function installFallbackModelContext(): ModelContext | null {
+  if (typeof document === "undefined") return null;
+  const tools: RegisteredTool[] = [];
+
+  const context = {
+    [FALLBACK_FLAG]: true,
+    registerTool(tool: RegisteredTool, options?: { signal?: AbortSignal }) {
+      if (tools.some((existing) => existing.name === tool.name)) {
+        return Promise.reject(new DOMException(`Tool already registered: ${tool.name}`, "InvalidStateError"));
+      }
+      tools.push(tool);
+      // Same lifetime rule as the real thing: aborting the registration signal
+      // takes the tool back out, so a React unmount does not leave a tool
+      // pointing at a dead bridge.
+      options?.signal?.addEventListener("abort", () => {
+        const at = tools.indexOf(tool);
+        if (at !== -1) tools.splice(at, 1);
+      }, { once: true });
+      return Promise.resolve();
+    },
+    getTools: () => Promise.resolve(tools.slice()),
+    executeTool: async (tool: RegisteredTool | string, input?: string | Record<string, unknown>) => {
+      const name = typeof tool === "string" ? tool : tool?.name;
+      const found = tools.find((candidate) => candidate.name === name);
+      if (!found) throw new TypeError(`No WebMCP tool named ${JSON.stringify(name ?? null)} is registered on this page.`);
+      const args = typeof input === "string" ? (input.trim() ? JSON.parse(input) : {}) : (input ?? {});
+      return JSON.stringify(await found.execute(args));
+    },
+  };
+
+  // Configurable and writable on purpose: a WebMCP extension that arrives after
+  // this must be able to take the property over rather than find it locked.
+  Object.defineProperty(document, "modelContext", { configurable: true, writable: true, value: context });
+  return context as unknown as ModelContext;
+}
+
+/**
+ * Keeps watching for a real host once the fallback is in place.
+ *
+ * An extension that checks `if (!document.modelContext)` before installing
+ * would find OUR object sitting there and back off, leaving its bridge with
+ * nothing to expose. So installing the fallback does not end the search: if a
+ * foreign context appears inside the rest of the ten-second window, every tool
+ * is registered into that one as well. The two registries are independent, and
+ * a tool present in both is reachable from both.
+ */
+function registerIntoLateHost(tools: RegisteredTool[], signal: AbortSignal): void {
+  let attempts = FALLBACK_GRACE_ATTEMPTS;
+  const timer = setInterval(() => {
+    const found = resolveModelContext();
+    if (found && !isOurs(found)) {
+      clearInterval(timer);
+      for (const tool of tools) {
+        found.registerTool(tool, { signal }).catch((cause) =>
+          console.warn(`[handback] could not register "${tool.name}" with the WebMCP host that arrived late:`, cause),
+        );
+      }
+      return;
+    }
+    if (++attempts >= LATE_INJECTION_ATTEMPTS || signal.aborted) clearInterval(timer);
+  }, LATE_INJECTION_INTERVAL_MS);
+  signal.addEventListener("abort", () => clearInterval(timer), { once: true });
+}
+
 export async function registerHandbackTools(bridge: WebMcpBridge): Promise<AbortController | null> {
   const controller = new AbortController();
-  const modelContext = await whenModelContextReady(controller.signal);
+  const host = await whenHostReady(controller.signal);
+  if (controller.signal.aborted) return null;
+  const modelContext = host ?? installFallbackModelContext();
   if (!modelContext) return null;
 
-  const register = async (tool: Parameters<ModelContext["registerTool"]>[0]) => {
+  const registered: RegisteredTool[] = [];
+  const register = async (tool: RegisteredTool) => {
+    registered.push(tool);
     try {
       await modelContext.registerTool(tool, { signal: controller.signal });
     } catch (cause) {
@@ -429,5 +553,6 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
     },
   });
 
+  if (!host) registerIntoLateHost(registered, controller.signal);
   return controller;
 }
