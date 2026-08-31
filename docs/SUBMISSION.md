@@ -73,9 +73,16 @@ with `requireApproval: true` to put a human back in the loop, and
 approve tool and no commit tool.
 
 So an agent that has been prompt-injected by the very handoff it just read can
-raise the safety bar and can never lower it. That asymmetry is only expressible
-when the tools are page-local and the page owns the switch: a remote MCP server
-handing an agent a settings endpoint has no way to make "off" unreachable.
+raise the safety bar through the tools, and has no tool that lowers it. That
+asymmetry is only expressible when the tools are page-local and the page owns
+the switch: a remote MCP server handing an agent a settings endpoint has no way
+to make "off" unreachable.
+
+The guarantee covers the tool surface rather than the browser, and that limit is
+worth naming. An agent driving the page through browser automation clicks the
+control the way a person does, and no website can prevent that. What the one-way
+gate buys is that the WebMCP path, the route a prompt injection actually travels,
+contains no move that reduces human oversight.
 
 ## 4. Implementation approach for WebMCP
 
@@ -154,7 +161,7 @@ strong on its own: the state crossed a boundary the conversation could not.
 | 0:45-0:58 | The reply is the bare link. Cursor-highlight the `#` and everything after it. | "One call back: the link. Everything before the hash is an opaque id the server stores. Everything after it is the AES-256 key, and browsers never send a fragment to a server. So the service holds ciphertext it can't read. Which also means whoever holds the whole link can. It's a bearer capability, not zero-knowledge, and the page says so." |
 | 0:58-1:38 | Hard cut to the second window. Paste the link with `Pick up the work from this handback.link and tell me what I'm inheriting.` Show `read_handoff` fire. Let the answer play out in full. | "Different session. Same link. It reads structured state, not prose it has to interpret. Ask what it's picking up and it answers from the data: here's the objective, here are the decisions and why, here's the question nobody's answered." **The money shot. Give it the full 40 seconds and do not rush the answer.** |
 | 1:38-2:05 | `Resolve the pricing question and hand it back.` Show `stage_contribution` with `baseVersion` visible. Cut to the page: the seal ticks v1 to v2, the hash changes, History gains a row. Then hold on the URL bar, unchanged. | "It proposes against the exact version it read, and a new sealed version is written. Same link. The seal is a hash over the state bound to its version and its parent, so anything edited outside the path stops matching. Every version is kept." **The still URL bar is what makes "one link, accumulating versions" visible instead of asserted.** |
-| 2:05-2:30 | The agent calls `handback_settings` with `requireApproval: false`. Show the refusal, `reason: "human_only"`, on screen. Then a human clicks Require approval. The next `stage_handoff` returns `staged_awaiting_human_approval`. | "Auto-approval is the default, because a click between an agent and its own output is friction nobody wants. But the gate is real and it's asymmetric on purpose. An agent can switch it on. It cannot switch it off. So an agent that's been prompt-injected by the handoff it just read can raise the bar and can never lower it. There's no approve tool, and there never will be." **Do not cut this beat.** |
+| 2:05-2:30 | The agent calls `handback_settings` with `requireApproval: false`. Show the refusal, `reason: "human_only"`, on screen. Then a human clicks Require approval. The next `stage_handoff` returns `staged_awaiting_human_approval`. | "Auto-approval is the default, because a click between an agent and its own output is friction nobody wants. But the gate is real and it's asymmetric on purpose. An agent can switch it on. It has no tool that switches it off. So an agent that's been prompt-injected by the handoff it just read can raise the bar, and the tools give it no way to lower it. There's no approve tool, and there never will be." **Do not cut this beat.** Say "no tool that switches it off" rather than "cannot switch it off": anything driving the browser can click the control like a person, and the claim you are making is about the tool surface. |
 | 2:30-2:40 | The landing page scrolling past the five-step figure, then the footer: handback.link, the repo, MIT. | "Five WebMCP tools. No account, no sign-up, free, MIT." |
 
 Runs about 2:40. Film beats 5 and 7 first, while you are freshest. They carry

@@ -11,8 +11,15 @@
  * deliberately asymmetric about the gate: it can switch approval ON, and
  * refuses `requireApproval: false` with reason "human_only". That asymmetry is
  * the consent boundary now. An agent on the page, including one prompt-injected
- * by the handoff it just read, can raise the bar and can never lower it; only a
- * person can, with the button. There is still no approve or commit tool.
+ * by the handoff it just read, can raise the bar and is given no tool that
+ * lowers it; a person lowers it with the button. There is still no approve or
+ * commit tool.
+ *
+ * Scope that honestly before quoting it anywhere: this constrains the tool
+ * surface, not the browser. Anything with DOM control clicks the button the way
+ * a person does, and no page can stop that. The value is that the WebMCP path,
+ * which is where an injected instruction arrives, offers no move that reduces
+ * oversight.
  *
  * Annotations like readOnlyHint are hints to the agent, not enforcement, so
  * they are documentation here and nothing more.
@@ -385,7 +392,9 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
   });
 
   // The one settings tool. It is deliberately asymmetric: an agent can switch
-  // the human approval gate ON, and cannot switch it off. Raising the bar is
+  // the human approval gate ON, and is given no tool that switches it off. A
+  // caller with DOM control can still click the button, so this is a property
+  // of the tool surface rather than of the browser. Raising the bar is
   // always safe, and the reverse would hand the last consent control to
   // whatever agent is on the page, including one that has been prompt-injected
   // by the very handoff it just read. A person turns it off with the button.
