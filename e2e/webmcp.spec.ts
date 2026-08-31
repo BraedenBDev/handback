@@ -223,6 +223,18 @@ test("without WebMCP the page still works by hand", async ({ page }) => {
   await expect(page.locator("input.link")).toBeVisible();
 });
 
+test("the registry is there on the first look, with no waiting at all", async ({ page }) => {
+  // The regression this pins: a 1.5s grace window before installing the
+  // fallback measured 1.7s from navigation to a usable document.modelContext.
+  // Agents do not poll. They load the page and evaluate once. A real ChatGPT
+  // session did exactly that, twice, and reported the property absent against a
+  // deployment that worked. Note there is no waitForFunction here on purpose —
+  // adding one is what hid the bug the first time.
+  await page.goto("/");
+  expect(await page.evaluate(() => typeof (document as any).modelContext)).toBe("object");
+  expect(await listTools(page)).toHaveLength(5);
+});
+
 test("in a browser with no WebMCP at all, an agent still reaches the tools", async ({ page }) => {
   // The ChatGPT agent-mode case, reproduced: a plain browser, no origin trial,
   // no extension, no mock. It was told exactly where to look, found

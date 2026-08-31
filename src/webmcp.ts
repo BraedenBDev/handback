@@ -248,16 +248,22 @@ export function toToolResult(value: unknown): unknown {
  * same answer: re-check on an interval for ten seconds. Without it, a page that
  * mounts a fraction too early registers nothing and never retries.
  *
- * The ten seconds is no longer spent BEFORE the fallback goes in. A browser
- * with no WebMCP at all would then have no tools for its first ten seconds,
- * which is most of an agent's patience, for the sake of an extension that in
- * practice injects at document_start. So the grace window is short, the
- * fallback follows it, and the remaining attempts keep watching (see
- * `registerIntoLateHost`).
+ * None of that waiting happens BEFORE the fallback goes in, and the first
+ * attempt at this cost a working feature. A 1.5 second grace window looked
+ * harmless and measured 1.7 seconds from navigation to a usable
+ * `document.modelContext`. Agents do not poll: they load the page and evaluate
+ * once. A real ChatGPT session did exactly that, twice, and reported the
+ * property absent both times — against a deployment that was working. The local
+ * check had passed only because it waited for the property with an eight second
+ * timeout, so it papered over the very gap it was meant to measure.
+ *
+ * So the fallback installs synchronously the moment nothing native is found,
+ * and `registerIntoLateHost` keeps the ten second watch running afterwards. The
+ * grace window was never needed for correctness anyway: adopting a host that
+ * arrives late is what that watcher already does.
  */
 const LATE_INJECTION_INTERVAL_MS = 500;
 const LATE_INJECTION_ATTEMPTS = 20;
-const FALLBACK_GRACE_ATTEMPTS = 3;
 
 type RegisteredTool = Parameters<ModelContext["registerTool"]>[0];
 
@@ -266,24 +272,6 @@ const FALLBACK_FLAG = "isHandbackFallback";
 
 function isOurs(context: ModelContext): boolean {
   return (context as unknown as Record<string, unknown>)[FALLBACK_FLAG] === true;
-}
-
-/** Waits a short grace window for a host to appear, then gives up. */
-function whenHostReady(signal: AbortSignal): Promise<ModelContext | null> {
-  const immediate = resolveModelContext();
-  if (immediate) return Promise.resolve(immediate);
-
-  return new Promise((resolve) => {
-    let attempts = 0;
-    const timer = setInterval(() => {
-      const found = resolveModelContext();
-      if (found || ++attempts >= FALLBACK_GRACE_ATTEMPTS || signal.aborted) {
-        clearInterval(timer);
-        resolve(found ?? null);
-      }
-    }, LATE_INJECTION_INTERVAL_MS);
-    signal.addEventListener("abort", () => { clearInterval(timer); resolve(null); }, { once: true });
-  });
 }
 
 /**
@@ -340,7 +328,11 @@ function installFallbackModelContext(): ModelContext | null {
 
   // Configurable and writable on purpose: a WebMCP extension that arrives after
   // this must be able to take the property over rather than find it locked.
-  Object.defineProperty(document, "modelContext", { configurable: true, writable: true, value: context });
+  const descriptor = { configurable: true, writable: true, value: context };
+  Object.defineProperty(document, "modelContext", descriptor);
+  // The deprecated alias too, because that is what @mcp-b/webmcp-polyfill
+  // exposes and therefore what a client written against it reads.
+  if (typeof navigator !== "undefined") Object.defineProperty(navigator, "modelContext", descriptor);
   return context as unknown as ModelContext;
 }
 
@@ -355,7 +347,7 @@ function installFallbackModelContext(): ModelContext | null {
  * a tool present in both is reachable from both.
  */
 function registerIntoLateHost(tools: RegisteredTool[], signal: AbortSignal): void {
-  let attempts = FALLBACK_GRACE_ATTEMPTS;
+  let attempts = 0;
   const timer = setInterval(() => {
     const found = resolveModelContext();
     if (found && !isOurs(found)) {
@@ -374,8 +366,10 @@ function registerIntoLateHost(tools: RegisteredTool[], signal: AbortSignal): voi
 
 export async function registerHandbackTools(bridge: WebMcpBridge): Promise<AbortController | null> {
   const controller = new AbortController();
-  const host = await whenHostReady(controller.signal);
-  if (controller.signal.aborted) return null;
+  // Synchronous on purpose. Every millisecond between page load and a usable
+  // document.modelContext is a millisecond in which a one-shot agent probe
+  // comes back undefined and the agent gives up.
+  const host = resolveModelContext();
   const modelContext = host ?? installFallbackModelContext();
   if (!modelContext) return null;
 

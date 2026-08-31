@@ -51,6 +51,9 @@ function makeBridge(overrides: Partial<WebMcpBridge> = {}): WebMcpBridge {
 
 beforeEach(() => {
   delete (document as any).modelContext;
+  // The fallback mirrors onto the deprecated alias too, so a leak here would
+  // make the next test think the browser supplies WebMCP.
+  delete (navigator as any).modelContext;
 });
 
 describe("tool registration", () => {
