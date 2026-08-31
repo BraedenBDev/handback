@@ -73,6 +73,25 @@
         "isAccessibleForFree": true
       }
     </script>
+    <style>
+      /* The prose inside #root exists for crawlers that do not run JavaScript.
+         In a browser it painted full-bleed with no layout for as long as the
+         bundle took to parse, which read as a broken page on every hard reload.
+         Scripting hides it; React replaces it a moment later. Default is
+         visible, so a browser with scripting off still gets the content. */
+      html.scripting .prerender { display: none; }
+    </style>
+    <script>
+      document.documentElement.classList.add("scripting");
+      // If the bundle never arrives, show the prose rather than leaving a blank
+      // page. React clears #root on mount, so finding .prerender still here
+      // means the app did not start.
+      setTimeout(function () {
+        if (document.querySelector(".prerender")) {
+          document.documentElement.classList.remove("scripting");
+        }
+      }, 4000);
+    </script>
   </head>
   <body>
     <!--
@@ -80,8 +99,9 @@
       (OAI-SearchBot, PerplexityBot, ClaudeBot) do not execute JavaScript, so
       without it they read a title tag and an empty div, which is what
       handback.link served until now. It lives inside #root, so React's first
-      render replaces it: nothing is hidden, nothing is served conditionally on
-      user-agent, and there is no second copy to keep in step by hand.
+      render replaces it: nothing is served conditionally on user-agent and
+      there is no second copy to keep in step by hand. A browser hides it
+      before first paint, via the two blocks at the end of <head>.
 
       Keep this in step with src/Explainer.tsx. It is the text an answer engine
       will quote back, and the bearer-capability paragraph is the load-bearing
@@ -89,6 +109,7 @@
       "zero-knowledge", which is not what this is.
     -->
     <div id="root">
+      <div class="prerender">
       <h1>Handback: hand off the work, get it back intact</h1>
       <p>
         Handback moves the useful state of an AI session between agents as one link. An agent packages the objective, a
@@ -139,6 +160,7 @@
         No account, no sign-up, no email address, and no cost. The source is at
         <a href="https://github.com/BraedenBDev/handback">github.com/BraedenBDev/handback</a> under the MIT licence.
       </p>
+      </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

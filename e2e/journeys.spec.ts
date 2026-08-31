@@ -158,6 +158,9 @@ test.describe("responsive", () => {
       await page.setViewportSize({ width, height });
       const url = await createHandoff(page, "A deliberately long objective that must wrap rather than push the layout wider than the viewport");
       await page.goto(url);
+      // Measure after the webfonts land. Fallback metrics are narrower, so an
+      // early measurement passed while the real page scrolled sideways.
+      await page.evaluate(() => document.fonts.ready);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow).toBeLessThanOrEqual(0);
     });

@@ -242,7 +242,11 @@ main { max-width: 56rem; margin: 0 auto; padding: 0 var(--gutter-x) 6rem; }
   margin: 0;
 }
 
-.masthead-meta { display: flex; align-items: center; gap: 0.9rem; }
+/* Wraps for the same reason .masthead does. On a handoff page this row carries
+   the expiry, the seal, Source and the theme toggle, which measures 389px once
+   the webfonts land — wider than a 375px phone. It read as passing because the
+   responsive test measured before the fonts settled. */
+.masthead-meta { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem 0.9rem; }
 
 /* --- the content card — everything below the masthead sits on one raised
    surface instead of loose fields on the page background. Gives the
@@ -337,7 +341,10 @@ main { max-width: 56rem; margin: 0 auto; padding: 0 var(--gutter-x) 6rem; }
 @media (max-width: 46rem) {
   .field { grid-template-columns: 1fr; gap: 0.5rem; }
   .field-label { padding-top: 0; }
-  main { padding-left: 1.15rem; padding-right: 1.15rem; }
+  /* main's gutter is --gutter-x and nothing else. A 1.15rem override lived here
+     and put main 18.4px from the edge while .content-card pulled back the
+     token's 20px, so the full-bleed card sat 3.2px wider than the phone and the
+     page scrolled sideways. One token, or the arithmetic stops cancelling. */
 }
 
 /* --- lists --------------------------------------------------------------- */
