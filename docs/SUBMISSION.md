@@ -123,12 +123,14 @@ browser tests, including one asserting the one-way gate in both directions.
 
 ---
 
-## Video shot list (target 2:40, hard cap 3:00)
+## Video shot list (target 2:52, hard cap 3:00)
 
-Rewritten after the origin trial landed and the hero changed. Two things are
+Rewritten after the origin trial landed and the hero changed. Three things are
 different from the first draft: **nobody needs to set a browser flag any more**,
-which removes the most awkward thirty seconds of any WebMCP demo, and the hero
-now crosses vendors on screen.
+which removes the most awkward thirty seconds of any WebMCP demo; the hero now
+crosses vendors on screen; and the landing page carries a **ChatGPT Desktop
+button**, which gives the close somewhere to point. The video used to end by
+describing what the viewer had seen. It now ends by telling them how to run it.
 
 ### Before you record
 
@@ -149,10 +151,16 @@ strong on its own: the state crossed a boundary the conversation could not.
 - Pre-write both prompts and paste them. No typing dead air.
 - Use a throwaway handoff. The fragment key is a live decryption key and it will
   be legible on a public video.
-- Do **not** film the landing hero as though it were the product. Its own
-  footnote says the conversation is scripted, and a judge who sees only the
+- Do **not** film the landing hero's *conversation* as though it were the
+  product. Its own footnote says it is scripted, and a judge who sees only the
   animation assumes the whole entry is a mock. One second of it as B-roll under
   the closing line is fine.
+- The **ChatGPT Desktop pill** directly under the headline is the exception, and
+  the only part of the landing page worth holding on. It is a real link to
+  chatgpt.com/download, not an animation, and it is the answer to the question a
+  judge has at the end: *how do I run this myself?* Film it in dark mode if your
+  recording profile allows, where it inverts to near-white and is the brightest
+  thing on screen.
 
 ### The beats
 
@@ -165,7 +173,12 @@ strong on its own: the state crossed a boundary the conversation could not.
 | 0:58-1:38 | Hard cut to the second window. Paste the link with `Pick up the work from this handback.link and tell me what I'm inheriting.` Show `read_handoff` fire. Let the answer play out in full. | "Different session. Same link. It reads structured state, not prose it has to interpret. Ask what it's picking up and it answers from the data: here's the objective, here are the decisions and why, here's the question nobody's answered." **The money shot. Give it the full 40 seconds and do not rush the answer.** |
 | 1:38-2:05 | `Resolve the pricing question and hand it back.` Show `stage_contribution` with `baseVersion` visible. Cut to the page: the seal ticks v1 to v2, the hash changes, History gains a row. Then hold on the URL bar, unchanged. | "It proposes against the exact version it read, and a new sealed version is written. Same link. The seal is a hash over the state bound to its version and its parent, so anything edited outside the path stops matching. Every version is kept." **The still URL bar is what makes "one link, accumulating versions" visible instead of asserted.** |
 | 2:05-2:30 | The agent calls `handback_settings` with `requireApproval: false`. Show the refusal, `reason: "human_only"`, on screen. Then a human clicks Require approval. The next `stage_handoff` returns `staged_awaiting_human_approval`. | "Auto-approval is the default, because a click between an agent and its own output is friction nobody wants. But the gate is real and it's asymmetric on purpose. An agent can switch it on. It has no tool that switches it off. So an agent that's been prompt-injected by the handoff it just read can raise the bar, and the tools give it no way to lower it. There's no approve tool, and there never will be." **Do not cut this beat.** Say "no tool that switches it off" rather than "cannot switch it off": anything driving the browser can click the control like a person, and the claim you are making is about the tool surface. |
-| 2:30-2:40 | The landing page scrolling past the five-step figure, then the footer: handback.link, the repo, MIT. | "Five WebMCP tools. No account, no sign-up, free, MIT." |
+| 2:30-2:38 | The landing page scrolling past the five-step figure. | "Five WebMCP tools. No account, no sign-up, free, MIT." |
+| 2:38-2:52 | Scroll back to the top and hold on the ChatGPT Desktop pill. Click it; let the download page open in the new tab. Cut to the footer: handback.link, the repo, MIT. | "Everything you just watched runs in the app on the left, with Site tools switched on. That button is on the page, and the whole thing is free." **The close is an instruction, not a summary.** A judge who wants to try this should not have to work out which browser to open — the two clicks are on screen. |
 
-Runs about 2:40. Film beats 5 and 7 first, while you are freshest. They carry
-the score.
+Runs about 2:52, so the closing beat spends most of what is left under the
+3:00 cap. If you overrun, trim the 2:30 scroll rather than the pill: the
+five-step figure is also on the landing page they are about to visit, and the
+route into ChatGPT Desktop is not.
+
+Film beats 5 and 7 first, while you are freshest. They carry the score.
