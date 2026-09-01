@@ -80,19 +80,12 @@ describe("entry point, across every place it has lived", () => {
     // document.modelContext a truthy Element rather than a ModelContext.
     (document as any).modelContext = { getTools: () => [] };
     expect(isWebMcpAvailable()).toBe(false);
-    vi.useFakeTimers();
-    try {
-      const pending = registerHandbackTools(bridge());
-      await vi.advanceTimersByTimeAsync(2_000);
-      await pending;
-      // The clobbered property is replaced rather than trusted, and the browser
-      // is still correctly reported as having no WebMCP of its own.
-      expect(isWebMcpAvailable()).toBe(false);
-      expect(isWebMcpFallback()).toBe(true);
-      expect((await (document as any).modelContext.getTools()).length).toBe(5);
-    } finally {
-      vi.useRealTimers();
-    }
+    await registerHandbackTools(bridge());
+    // The clobbered property is replaced rather than trusted, and the browser
+    // is still correctly reported as having no WebMCP of its own.
+    expect(isWebMcpAvailable()).toBe(false);
+    expect(isWebMcpFallback()).toBe(true);
+    expect((await (document as any).modelContext.getTools()).length).toBe(5);
   });
 
   it("does not fall back to window.agent, a name abandoned in 2025 that never shipped", async () => {
@@ -107,16 +100,9 @@ describe("entry point, across every place it has lived", () => {
     // and no extension. Before the fallback existed, an agent told exactly
     // where to look found document.modelContext undefined and gave up.
     expect(isWebMcpAvailable()).toBe(false);
-    vi.useFakeTimers();
-    try {
-      const pending = registerHandbackTools(bridge());
-      await vi.advanceTimersByTimeAsync(2_000);
-      await expect(pending).resolves.not.toBeNull();
-      expect(isWebMcpAvailable()).toBe(false); // the browser still has none
-      expect(isWebMcpFallback()).toBe(true); // but the tools are reachable
-    } finally {
-      vi.useRealTimers();
-    }
+    await expect(registerHandbackTools(bridge())).resolves.not.toBeNull();
+    expect(isWebMcpAvailable()).toBe(false); // the browser still has none
+    expect(isWebMcpFallback()).toBe(true); // but the tools are reachable
   });
 });
 
@@ -317,32 +303,13 @@ describe("results are shaped for clients that expect MCP content blocks", () => 
 
 describe("an API injected after mount is still picked up", () => {
   // Extension-based clients install modelContext from a content script, which
-  // can land after this page has already concluded WebMCP is absent.
-  it("waits for a late injection and then registers", async () => {
+  // can land after this page has already installed its own registry. One that
+  // checks `if (!document.modelContext)` first would find OUR object and back
+  // off, so installing the fallback must not end the search.
+  it("adopts a host that arrives after the fallback is installed", async () => {
     vi.useFakeTimers();
     try {
-      const { registered, context } = fakeContext();
-      const pending = registerHandbackTools(bridge());
-      expect(registered).toHaveLength(0);
-
-      (document as any).modelContext = context;
-      await vi.advanceTimersByTimeAsync(600);
-      await pending;
-      expect(registered).toHaveLength(5);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it("adopts a host that arrives after the fallback is already installed", async () => {
-    // An extension that checks `if (!document.modelContext)` would find OUR
-    // object and back off, so its bridge would expose nothing. Installing the
-    // fallback must not end the search.
-    vi.useFakeTimers();
-    try {
-      const pending = registerHandbackTools(bridge());
-      await vi.advanceTimersByTimeAsync(2_000);
-      await pending;
+      await registerHandbackTools(bridge());
       expect(isWebMcpFallback()).toBe(true);
 
       const { registered, context } = fakeContext();
@@ -354,15 +321,36 @@ describe("an API injected after mount is still picked up", () => {
     }
   });
 
-  it("stops watching after ten seconds rather than polling forever", async () => {
+  it("adopts a host that only ever installs on the deprecated navigator alias", async () => {
+    // Scanning for "any context" read `document` first, found our own registry
+    // there, and answered "ours" on every tick -- so a navigator-only host was
+    // invisible forever. Brave and @mcp-b/webmcp-polyfill are that exact shape,
+    // and this file's own notes single them out.
     vi.useFakeTimers();
     try {
-      const pending = registerHandbackTools(bridge());
-      await vi.advanceTimersByTimeAsync(2_000);
-      await pending;
-      expect(vi.getTimerCount()).toBeGreaterThan(0);
+      await registerHandbackTools(bridge());
+      const { registered, context } = fakeContext();
+      (navigator as any).modelContext = context;
+      await vi.advanceTimersByTimeAsync(600);
+      expect(registered).toHaveLength(5);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("ignores a host that turns up after the watch window closes", async () => {
+    // Behavioural. The previous version asserted vi.getTimerCount(), which is
+    // an implementation detail: it passes on any unrelated timer and breaks if
+    // the watcher becomes a recursive setTimeout. What matters is that a host
+    // arriving at t=11s gets nothing.
+    vi.useFakeTimers();
+    try {
+      await registerHandbackTools(bridge());
       await vi.advanceTimersByTimeAsync(11_000);
-      expect(vi.getTimerCount()).toBe(0);
+      const { registered, context } = fakeContext();
+      (document as any).modelContext = context;
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(registered).toHaveLength(0);
     } finally {
       vi.useRealTimers();
     }
@@ -372,16 +360,15 @@ describe("an API injected after mount is still picked up", () => {
 describe("the fallback registry speaks the same protocol as Chrome", () => {
   /** Installs the fallback and hands back whatever landed on the document. */
   async function installed() {
-    vi.useFakeTimers();
-    try {
-      const pending = registerHandbackTools(bridge());
-      await vi.advanceTimersByTimeAsync(2_000);
-      await pending;
-    } finally {
-      vi.useRealTimers();
-    }
+    await registerHandbackTools(bridge());
     return (document as any).modelContext;
   }
+
+  /** Unwraps the MCP content block executeTool returns. */
+  const payloadOf = (raw: string) => {
+    const result = JSON.parse(raw);
+    return result.structuredContent ?? JSON.parse(result.content[0].text);
+  };
 
   it("lists the same five tools, with their schemas intact", async () => {
     const tools = await (await installed()).getTools();
@@ -410,21 +397,50 @@ describe("the fallback registry speaks the same protocol as Chrome", () => {
     expect(JSON.parse(await context.executeTool("get_handoff_receipt"))).toHaveProperty("content");
   });
 
+  it("refuses input its schema forbids, as a value rather than a throw", async () => {
+    // The browser validates against inputSchema before calling execute; this
+    // registry has to do that job itself. read_handoff requires `sections`, and
+    // without validation the call reached `for (const section of sections)` and
+    // threw a raw TypeError at the agent -- in a file whose whole contract is
+    // that refusals come back as values.
+    const context = await installed();
+    const payload = payloadOf(await context.executeTool("read_handoff", "{}"));
+    expect(payload).toMatchObject({ status: "refused", reason: "invalid_input" });
+    expect(payload.message).toMatch(/sections/);
+  });
+
+  it("refuses a handoff the front page would later refuse to import", async () => {
+    // objective caps at 600 characters. Unvalidated, an over-long one was
+    // encrypted and given a working link, and only failed when its own portable
+    // file was brought back in through the import path. The product would have
+    // been rejecting its own output.
+    const context = await installed();
+    const payload = payloadOf(await context.executeTool("stage_handoff",
+      JSON.stringify({ objective: "x".repeat(1000), summary: "s" })));
+    expect(payload).toMatchObject({ status: "refused", reason: "invalid_input" });
+  });
+
+  it("refuses a field the schema does not declare at all", async () => {
+    const context = await installed();
+    const payload = payloadOf(await context.executeTool("stage_handoff",
+      JSON.stringify({ objective: "o", summary: "s", injected: { a: 1 } })));
+    expect(payload).toMatchObject({ status: "refused", reason: "invalid_input" });
+  });
+
+  it("still lets valid input straight through", async () => {
+    const context = await installed();
+    const payload = payloadOf(await context.executeTool("stage_handoff",
+      JSON.stringify({ objective: "o", summary: "s" })));
+    expect(payload.status).not.toBe("refused");
+  });
+
   it("names the tool it could not find, instead of a generic type error", async () => {
     const context = await installed();
     await expect(context.executeTool("no_such_tool", "{}")).rejects.toThrow(/no_such_tool/);
   });
 
   it("removes its tools when the page tears the registration down", async () => {
-    vi.useFakeTimers();
-    let controller;
-    try {
-      const pending = registerHandbackTools(bridge());
-      await vi.advanceTimersByTimeAsync(2_000);
-      controller = await pending;
-    } finally {
-      vi.useRealTimers();
-    }
+    const controller = await registerHandbackTools(bridge());
     const context = (document as any).modelContext;
     expect((await context.getTools()).length).toBe(5);
     controller!.abort();

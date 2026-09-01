@@ -36,6 +36,7 @@ import {
   type HandoffState,
   type ReadSection,
 } from "../shared/schema.ts";
+import { validate } from "../shared/validate.ts";
 
 /**
  * A refusal the agent can actually act on.
@@ -205,14 +206,19 @@ export function clampForAgent(
  * other case.
  */
 export function isWebMcpAvailable(): boolean {
-  const context = resolveModelContext();
-  return context !== null && !isOurs(context);
+  return webMcpMode() === "browser";
 }
 
 /** True when the tools are reachable, but through the page's own registry. */
 export function isWebMcpFallback(): boolean {
+  return webMcpMode() === "fallback";
+}
+
+/** The single resolution both of the above read, so they cannot disagree. */
+function webMcpMode(): "browser" | "fallback" | "none" {
   const context = resolveModelContext();
-  return context !== null && isOurs(context);
+  if (!context) return "none";
+  return isOurs(context) ? "fallback" : "browser";
 }
 
 /**
@@ -275,6 +281,43 @@ function isOurs(context: ModelContext): boolean {
 }
 
 /**
+ * The first REAL host, scanning both slots rather than stopping at the first
+ * hit. `resolveModelContext` reads `document` first, which is where the
+ * fallback sits, so it answers "ours" forever and a host that only ever
+ * installs on `navigator.modelContext` is invisible to it — and that is exactly
+ * the class this file's own notes single out: the deprecated alias is what
+ * @mcp-b/webmcp-polyfill exposes and what Brave reads.
+ */
+function resolveForeignContext(): ModelContext | null {
+  const slots = [
+    typeof document !== "undefined" ? (document as unknown as { modelContext?: ModelContext }).modelContext : undefined,
+    typeof navigator !== "undefined" ? (navigator as unknown as { modelContext?: ModelContext }).modelContext : undefined,
+  ];
+  for (const candidate of slots) {
+    if (candidate && typeof candidate.registerTool === "function" && !isOurs(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Reports the schema violations in `args`, or an empty list.
+ *
+ * Never throws. validate.ts is deliberately loud about JSON Schema keywords it
+ * does not implement, which is right for a build-time source of truth and wrong
+ * here: an unimplemented keyword must not take a working tool call down. It
+ * warns and admits the call instead, so the gap is visible without being fatal.
+ */
+function describeSchemaViolations(args: unknown, schema: unknown): string[] {
+  try {
+    const result = validate(args, schema as Record<string, unknown>);
+    return result.valid ? [] : result.errors;
+  } catch (cause) {
+    console.warn("[handback] could not validate tool input against its schema:", cause);
+    return [];
+  }
+}
+
+/**
  * The page's own WebMCP registry, installed only where the browser ships none.
  *
  * Without it, an agent in a browser that has never heard of WebMCP has NO route
@@ -322,6 +365,24 @@ function installFallbackModelContext(): ModelContext | null {
       const found = tools.find((candidate) => candidate.name === name);
       if (!found) throw new TypeError(`No WebMCP tool named ${JSON.stringify(name ?? null)} is registered on this page.`);
       const args = typeof input === "string" ? (input.trim() ? JSON.parse(input) : {}) : (input ?? {});
+
+      // The browser validates against inputSchema before calling execute. This
+      // registry has to do that job itself, or the tools receive input their
+      // schemas forbid. Two things went wrong without it: read_handoff with no
+      // `sections` reached `for (const section of sections)` and threw a raw
+      // TypeError at the agent, in a file whose whole contract is that refusals
+      // are returned as values; and stage_handoff accepted an over-long
+      // objective, encrypted it, and produced a link whose portable file the
+      // front page then refused to import. The product would have been
+      // rejecting its own output.
+      const problems = describeSchemaViolations(args, found.inputSchema);
+      if (problems.length) {
+        return JSON.stringify(toToolResult({
+          status: "refused",
+          reason: "invalid_input",
+          message: `Input does not match this tool's schema: ${problems.join("; ")}.`,
+        }));
+      }
       return JSON.stringify(await found.execute(args));
     },
   };
@@ -349,8 +410,8 @@ function installFallbackModelContext(): ModelContext | null {
 function registerIntoLateHost(tools: RegisteredTool[], signal: AbortSignal): void {
   let attempts = 0;
   const timer = setInterval(() => {
-    const found = resolveModelContext();
-    if (found && !isOurs(found)) {
+    const found = resolveForeignContext();
+    if (found) {
       clearInterval(timer);
       for (const tool of tools) {
         found.registerTool(tool, { signal }).catch((cause) =>
@@ -369,7 +430,11 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
   // Synchronous on purpose. Every millisecond between page load and a usable
   // document.modelContext is a millisecond in which a one-shot agent probe
   // comes back undefined and the agent gives up.
-  const host = resolveModelContext();
+  // resolveForeignContext, not resolveModelContext: a remount finds the registry
+  // the previous mount installed, and treating that as a host made all five
+  // registrations fail with "already registered" AND skipped the late-host
+  // watcher entirely. A fresh registry replaces the stale one instead.
+  const host = resolveForeignContext();
   const modelContext = host ?? installFallbackModelContext();
   if (!modelContext) return null;
 

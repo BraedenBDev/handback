@@ -78,7 +78,10 @@ const listTools = (page: Page) =>
 test("registers exactly the five tools, and no approve or commit tool", async ({ page }) => {
   await installWebMcp(page);
   await page.goto("/");
-  await expect(page.getByText("WebMCP tools registered")).toBeVisible();
+  // Exact: getByText matches substrings, so this also matched the fallback's
+  // "WebMCP tools registered by this page." and could not fail if the mock
+  // silently stopped being installed.
+  await expect(page.getByText("WebMCP tools registered.", { exact: true })).toBeVisible();
 
   const tools = await listTools(page);
   expect(tools).toEqual(["get_handoff_receipt", "handback_settings", "read_handoff", "stage_contribution", "stage_handoff"]);

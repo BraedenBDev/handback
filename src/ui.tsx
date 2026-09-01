@@ -293,8 +293,10 @@ export function ToolStatus({ available, fallback = false }: { available: boolean
         <>
           <b>WebMCP tools registered by this page.</b>
           <span>
-            Your browser does not implement WebMCP, so Handback installed the registry itself. Any agent that can run
-            JavaScript here reaches the same five tools at <code>document.modelContext</code>.
+            Your browser does not implement WebMCP, so Handback installed the registry itself. An agent that runs
+            JavaScript in the page's own context reaches the same five tools at <code>document.modelContext</code>. An
+            extension sandboxed in an isolated world will not see it, because only a real browser implementation is
+            visible from there.
           </span>
         </>
       ) : (

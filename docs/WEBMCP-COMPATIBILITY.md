@@ -94,7 +94,28 @@ same three methods, same calling convention, same five tools. The official
 case, and the status strip prints a different sentence for each so nobody reads
 "registered" as browser support.
 
-Two things this had to get right, neither obvious:
+**What the polyfill cannot do, stated before anyone quotes it otherwise.** It
+installs an expando on `document`, and in Blink every isolated world holds its
+own JS wrapper for the same DOM node. So an extension content script — which
+defaults to `world: "ISOLATED"` — does **not** see it. A native
+`document.modelContext` is an IDL attribute on `Document.prototype` and *is*
+visible from every world, so the two are not equivalent and the status strip
+says so. This is invisible to our own tests by construction: Playwright's
+`page.evaluate` runs in the main world, which is the one world where the
+expando is guaranteed to work. CDP-driven agents evaluate in the main world too,
+which is why this still fixes the ChatGPT case.
+
+Three more things this had to get right, none obvious:
+
+- **Validate the input the browser would have validated.** A real host checks
+  the call against `inputSchema` before invoking `execute`. The registry has to
+  do that itself or the tools receive input their schemas forbid: `read_handoff`
+  with no `sections` reached `for (const section of sections)` and threw a raw
+  TypeError at the agent, and an over-long `objective` was encrypted into a
+  working link whose portable file the front page then refused to import — the
+  product rejecting its own output. It reuses `shared/validate.ts`, so there is
+  still one source of truth, and it warns rather than throwing if the validator
+  meets a keyword it does not implement.
 
 - **Don't make agents wait.** The ten-second poll for late-injecting extensions
   used to run *before* concluding WebMCP was absent. Spending all of it up front
@@ -106,7 +127,15 @@ Two things this had to get right, neither obvious:
   off, leaving its bridge with nothing. So the fallback does not end the search:
   a foreign context appearing inside the remaining window gets every tool
   registered into it as well, and the property is left `configurable` and
-  `writable` so it can be taken over outright.
+  `writable` so it can be taken over outright. A host that wants to check first
+  can read `isHandbackFallback` on the object and know it is safe to replace.
+- **Scan both slots for the foreign host, not just the first hit.** The resolver
+  reads `document` before `navigator`, and the fallback sits on `document`, so
+  asking it for "any context" answered *ours* on every tick and a host that only
+  ever installs on the deprecated `navigator.modelContext` alias stayed
+  invisible forever. That is precisely the shape Brave and
+  @mcp-b/webmcp-polyfill have. The watcher looks for the first context that is
+  not ours, in either slot.
 
 **Status at 2026-08-27:** Chrome origin trial 149 to 156, expiring 2026-11-17.
 Edge origin trial from 150. ChatGPT's in-app browser supported. Brave

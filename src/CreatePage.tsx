@@ -92,17 +92,30 @@ export function CreatePage() {
         message: "This page creates handoffs; it has none open to contribute to. Open a handoff link first, then call stage_contribution there.",
       }),
     };
+    let cancelled = false;
     let controller: AbortController | null = null;
-    registerHandbackTools(bridge).then((result) => {
-      controller = result;
-      // An extension can install WebMCP after this page decided it was absent.
-      // Reflect that, rather than leaving the banner telling the user to go
-      // enable something that is already working.
-      if (!result) return;
-      setWebMcp(isWebMcpAvailable());
-      setFallback(isWebMcpFallback());
-    });
-    return () => controller?.abort();
+    registerHandbackTools(bridge)
+      .then((result) => {
+        controller = result;
+        // Cleanup can run before this settles, and `controller` was still null
+        // then, so abort() never happened: the tools stayed registered against
+        // a torn-down component and the late-host watcher kept polling. Under
+        // StrictMode that is every mount, not an edge case.
+        if (cancelled) return void result?.abort();
+        // An extension can install WebMCP after this page decided it was absent.
+        // Reflect that, rather than leaving the banner telling the user to go
+        // enable something that is already working.
+        if (!result) return;
+        setWebMcp(isWebMcpAvailable());
+        setFallback(isWebMcpFallback());
+      })
+      // Without this a throw anywhere in registration became an unhandled
+      // rejection and the strip sat on "not detected" with no clue why.
+      .catch((cause) => console.warn("[handback] WebMCP registration failed:", cause));
+    return () => {
+      cancelled = true;
+      controller?.abort();
+    };
   }, []);
 
   async function approveAndCreate() {
