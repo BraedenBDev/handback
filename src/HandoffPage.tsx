@@ -13,6 +13,9 @@ import { ApprovalMode, BackToHome, ErrorNote, Field, HistoryView, Masthead, Seal
 /** Shared by every WebMCP bridge method that has nothing to report yet because decryption hasn't finished. */
 const NOT_DECRYPTED_YET = "This handoff has not finished decrypting yet. Try again in a moment.";
 
+/** Ceiling on how long a tool call waits for the fetch and decrypt to finish. */
+const DECRYPT_WAIT_MS = 5000;
+
 export function HandoffPage({ id }: { id: string }) {
   const [doc, setDoc] = useState<HandoffDocument | null>(null);
   const [seal, setSeal] = useState<SealVerdict>("verified");
@@ -32,6 +35,34 @@ export function HandoffPage({ id }: { id: string }) {
   const latest = useRef<{ doc: HandoffDocument | null }>({ doc: null });
   latest.current = { doc };
 
+  /**
+   * Resolves once loading has settled, whether that ends in a document, an
+   * error or an expiry.
+   *
+   * Agents call a tool once and act on the answer; they do not poll. Opening a
+   * handoff link and asking to read it immediately used to return "has not
+   * finished decrypting yet" for the first ~700ms, which a one-shot caller
+   * reads as a refusal. `execute` is async, so the tool can simply wait for the
+   * fetch and decrypt instead of reporting a state the caller cannot use.
+   */
+  const settled = useRef<{ wait: Promise<void>; done: () => void } | null>(null);
+  if (!settled.current) {
+    let done: () => void = () => {};
+    const wait = new Promise<void>((resolve) => { done = resolve; });
+    settled.current = { wait, done };
+  }
+
+  /** The decrypted document, waiting for it if loading is still in flight. */
+  async function whenReadable(): Promise<HandoffDocument | null> {
+    if (latest.current.doc) return latest.current.doc;
+    // A ceiling, so a tool call can never hang on a page that never settles.
+    await Promise.race([
+      settled.current!.wait,
+      new Promise((resolve) => setTimeout(resolve, DECRYPT_WAIT_MS)),
+    ]);
+    return latest.current.doc;
+  }
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -44,13 +75,16 @@ export function HandoffPage({ id }: { id: string }) {
         const decrypted = await decryptDocument(key, stored.envelope);
         const verdict = await verifyDocument(decrypted);
         if (cancelled) return;
+        latest.current = { doc: decrypted };
         setDoc(decrypted);
         setSeal(verdict);
         setExpiresAt(stored.expiresAt);
         setLoading(false);
+        settled.current!.done();
       } catch (cause) {
         if (cancelled) return;
         setLoading(false);
+        settled.current!.done();
         if (cause instanceof ExpiredError) {
           setExpired(true);
           setError(null);
@@ -102,22 +136,22 @@ export function HandoffPage({ id }: { id: string }) {
         reason: "wrong_page",
         message: "A handoff is already open on this page. Use stage_contribution to propose changes to it instead.",
       }),
-      getReceipt: () => {
-        const current = latest.current.doc;
+      getReceipt: async () => {
+        const current = await whenReadable();
         if (current) return { status: "created" as const, url: location.href, version: current.version };
         // Not "pending": nobody is being asked to approve anything here, the
         // page just has not finished decrypting yet.
         return { status: "none" as const, message: NOT_DECRYPTED_YET };
       },
-      readHandoff: (sections: ReadSection[]) => {
-        const current = latest.current.doc;
+      readHandoff: async (sections: ReadSection[]) => {
+        const current = await whenReadable();
         if (!current) return { error: NOT_DECRYPTED_YET };
         const picked: Record<string, unknown> = { version: current.version };
         for (const section of sections) picked[section] = current.state[section] ?? null;
         return picked;
       },
       stageContribution: async (contribution: Contribution) => {
-        const current = latest.current.doc;
+        const current = await whenReadable();
         if (!current) {
           return {
             status: "refused" as const,

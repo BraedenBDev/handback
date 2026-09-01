@@ -60,8 +60,12 @@ export type WebMcpBridge = {
   readSettings(): HandbackSettings;
   writeSettings(next: { requireApproval?: boolean; retentionDays?: number | null }): HandbackSettings | ToolRefusal;
   stageHandoff(state: HandoffState): void | ToolRefusal | Promise<void | ToolRefusal | AutoApproved>;
-  getReceipt(): { status: "pending" | "created" | "none"; url?: string; version?: number; message?: string };
-  readHandoff(sections: ReadSection[]): Record<string, unknown> | { error: string };
+  getReceipt():
+    | { status: "pending" | "created" | "none"; url?: string; version?: number; message?: string }
+    | Promise<{ status: "pending" | "created" | "none"; url?: string; version?: number; message?: string }>;
+  readHandoff(
+    sections: ReadSection[],
+  ): Record<string, unknown> | { error: string } | Promise<Record<string, unknown> | { error: string }>;
   stageContribution(
     contribution: Contribution,
   ):
@@ -500,7 +504,7 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
       "Report the link for the handoff created on this page. Returns created with the link and version once one exists, which under the default is immediately after stage_handoff. Returns pending only while a draft on screen waits for a human click, on devices with the approval gate on. Returns none when this page holds no handoff, including after a reload, because the link lives in page memory. Keep the url stage_handoff returns rather than asking for it again.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true, untrustedContentHint: false },
-    execute: async () => toToolResult(bridge.getReceipt()),
+    execute: async () => toToolResult(await bridge.getReceipt()),
   });
 
   await register({
@@ -529,7 +533,7 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
     },
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     execute: async ({ sections, offset }: { sections: ReadSection[]; offset?: number }) =>
-      toToolResult(clampForAgent(bridge.readHandoff(sections), offset ?? 0)),
+      toToolResult(clampForAgent(await bridge.readHandoff(sections), offset ?? 0)),
   });
 
   await register({

@@ -216,6 +216,49 @@ test("a second agent reads the handoff, contributes, and a human approves", asyn
   await expect(third.getByText("Marking it done")).toBeVisible();
 });
 
+test("a handoff link answers the first read, without being waited for", async ({ page }) => {
+  // Found by driving the real site with two agents at once. Opening a handoff
+  // link and calling read_handoff straight away returned "has not finished
+  // decrypting yet" for the first ~700ms, and an agent calling once reads that
+  // as a refusal. Same one-shot failure as the registry timing bug, on the page
+  // a judge is most likely to open from a shared link.
+  await installWebMcp(page);
+  await page.goto("/");
+  const { url } = await callTool(page, "stage_handoff", {
+    objective: "Readable on arrival",
+    summary: "The second agent should not have to poll for this.",
+    tasks: [{ title: "Be readable immediately", status: "todo" }],
+  });
+
+  const second = await page.context().newPage();
+  await installWebMcp(second);
+  await second.goto(url);
+  // No waiting for any element, deliberately. A wait is what hid this.
+  const read = await callTool(second, "read_handoff", { sections: ["objective", "tasks"] });
+  expect(read.objective).toBe("Readable on arrival");
+  expect(read.version).toBe(1);
+
+  const receipt = await callTool(second, "get_handoff_receipt", {});
+  expect(receipt.status).toBe("created");
+});
+
+test("the same first read works through the page's own registry", async ({ page }) => {
+  // The variant above installs the mock, so it exercises the host path only. The
+  // production failure that prompted this was on the FALLBACK path, and a test
+  // that cannot tell the two apart would not have caught a regression in it.
+  await page.goto("/");
+  const { url } = await callTool(page, "stage_handoff", {
+    objective: "Readable on arrival, no host",
+    summary: "Reached through the registry this page installed.",
+  });
+
+  const second = await page.context().newPage();
+  await second.goto(url); // no mock, no waiting
+  expect(await second.evaluate(() => (document as any).modelContext?.isHandbackFallback)).toBe(true);
+  const read = await callTool(second, "read_handoff", { sections: ["objective"] });
+  expect(read.objective).toBe("Readable on arrival, no host");
+});
+
 test("without WebMCP the page still works by hand", async ({ page }) => {
   await page.goto("/"); // no mock installed
   await expect(page.getByText("WebMCP tools registered by this page")).toBeVisible();
