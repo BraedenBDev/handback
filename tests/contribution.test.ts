@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyContribution, describeContribution, StaleBaseError } from "../src/contribution.ts";
+import { applyContribution, describeContribution, describeOperationProblems, StaleBaseError } from "../src/contribution.ts";
 import type { HandoffDocument } from "../shared/schema.ts";
 
 const base: HandoffDocument = {
@@ -73,5 +73,61 @@ describe("applying a contribution", () => {
       ],
     });
     expect(lines).toEqual(["Add decision: D", 'Mark task "T" as done']);
+  });
+});
+
+describe("op-specific fields the input schema cannot require", () => {
+  it("refuses set_task_status with no status instead of assuming done", () => {
+    // This was `operation.status ?? "done"`. The one operation whose entire
+    // purpose is to set a status guessed it when missing, and guessed the most
+    // consequential value in the enum — and under auto-approval, which is the
+    // default, no human ever saw the guess.
+    const problems = describeOperationProblems([
+      { op: "set_task_status", value: "Ship the thing" } as any,
+    ]);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/set_task_status/);
+    expect(problems[0]).toMatch(/todo, in_progress, blocked or done/);
+  });
+
+  it("refuses add_source with no url", () => {
+    const problems = describeOperationProblems([{ op: "add_source", value: "A paper" } as any]);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/needs a url/);
+  });
+
+  it("names every bad operation by index, not just the first", () => {
+    const problems = describeOperationProblems([
+      { op: "add_decision", value: "fine" } as any,
+      { op: "set_task_status", value: "no status" } as any,
+      { op: "add_source", value: "no url" } as any,
+    ]);
+    expect(problems).toHaveLength(2);
+    expect(problems[0]).toContain("operations[1]");
+    expect(problems[1]).toContain("operations[2]");
+  });
+
+  it("passes operations that carry what they need", () => {
+    expect(describeOperationProblems([
+      { op: "set_task_status", value: "Ship the thing", status: "blocked" } as any,
+      { op: "add_source", value: "A paper", url: "https://example.com" } as any,
+      { op: "add_task", value: "New task" } as any, // status is genuinely optional here
+    ])).toEqual([]);
+  });
+
+  it("still applies a status that was supplied, and never invents one", () => {
+    const applied = applyContribution(base, {
+      baseVersion: base.version,
+      note: "Blocked on legal",
+      operations: [{ op: "set_task_status", value: "Build the MVP", status: "blocked" }],
+    });
+    expect(applied.state.tasks!.find((t) => t.title === "Build the MVP")!.status).toBe("blocked");
+
+    // The backstop, for anything reaching apply without going through the tool.
+    expect(() => applyContribution(base, {
+      baseVersion: base.version,
+      note: "No status given",
+      operations: [{ op: "set_task_status", value: "Build the MVP" } as any],
+    })).toThrow(/needs a status/);
   });
 });

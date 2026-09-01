@@ -128,9 +128,17 @@ export const CONTRIBUTION_OP_SCHEMA = {
     status: {
       type: "string",
       enum: ["todo", "in_progress", "blocked", "done"],
-      description: "Only for set_task_status and add_task.",
+      // REQUIRED for set_task_status. JSON Schema could express that with
+      // if/then, but validate.ts implements a deliberate subset and throws on
+      // keywords it does not handle, so the requirement is stated here and
+      // enforced in describeOperationProblems() rather than half-declared.
+      description: "Required for set_task_status. Optional for add_task, where it defaults to todo. Ignored by every other op.",
     },
-    url: { type: "string", maxLength: 2000, description: "Only for add_source." },
+    url: {
+      type: "string",
+      maxLength: 2000,
+      description: "Required for add_source. Ignored by every other op.",
+    },
   },
   required: ["op", "value"],
   additionalProperties: false,
@@ -236,4 +244,118 @@ export const ENVELOPE_SCHEMA = {
   },
   required: ["format", "iv", "ciphertext"],
   additionalProperties: false,
+} as const;
+
+
+/* --------------------------------------------------------------------------
+   Result schemas.
+ 
+   A third-party WebMCP grader marked every tool down on 2026-09-01 for the
+   same thing: an agent has to infer the return shape from prose. It was right
+   about the problem. It is worth knowing where the fix does and does not land.
+ 
+   `ModelContextTool` in the WebMCP IDL is `{ name, title, description,
+   inputSchema, execute, annotations }` and has no outputSchema member, and
+   WebIDL dictionaries drop members they do not declare. So a spec-compliant
+   host silently discards these. They are declared anyway because three things
+   do read them: the fallback registry in webmcp.ts, which is what a browser
+   without WebMCP talks to; MCP bridges that convert a page's tools into real
+   MCP tools, where outputSchema is a first-class field paired with the
+   structuredContent this file's results already carry; and scanners reading
+   the descriptor directly. When the dictionary gains the member, this is
+   already correct.
+   -------------------------------------------------------------------------- */
+
+/** Shared by every tool: a refusal is a value, never a throw. */
+const REFUSAL_FIELDS = {
+  status: { type: "string", enum: ["refused"], description: "The call was understood and declined." },
+  reason: {
+    type: "string",
+    enum: ["human_only", "wrong_page", "wrong_tool", "stale_base", "not_ready", "invalid_retention", "invalid_input", "invalid_operation"],
+    description: "Machine-readable cause. Branch on this, not on the message.",
+  },
+  message: { type: "string", description: "What to do instead, in one sentence." },
+} as const;
+
+export const STAGE_HANDOFF_RESULT_SCHEMA = {
+  type: "object",
+  properties: {
+    ...REFUSAL_FIELDS,
+    status: {
+      type: "string",
+      enum: ["created", "staged_awaiting_human_approval", "refused"],
+      description: "created means the link exists now. staged means a human must click Approve and create.",
+    },
+    url: { type: "string", description: "The full handoff link, including the #k= key fragment. Reply with it verbatim." },
+    version: { type: "integer", minimum: 1, description: "Version of the handoff just written." },
+  },
+  required: ["status"],
+} as const;
+
+export const RECEIPT_RESULT_SCHEMA = {
+  type: "object",
+  properties: {
+    status: {
+      type: "string",
+      enum: ["created", "pending", "none"],
+      description: "created: a link exists. pending: a draft awaits a human click. none: this page holds no handoff.",
+    },
+    url: { type: "string", description: "Present only when status is created." },
+    version: { type: "integer", minimum: 1, description: "Present only when status is created." },
+    message: { type: "string", description: "Present when status is none, saying what to call instead." },
+  },
+  required: ["status"],
+} as const;
+
+export const READ_HANDOFF_RESULT_SCHEMA = {
+  type: "object",
+  properties: {
+    version: { type: "integer", minimum: 1, description: "Version these sections were read from. Pass it back as baseVersion." },
+    error: { type: "string", description: "Present instead of content when no handoff is open on this page." },
+    offset: { type: "integer", minimum: 0, description: "Where this slice of a paged section started." },
+    nextOffset: { type: "integer", minimum: 0, description: "Pass as offset to continue. Absent when complete." },
+    totalLength: { type: "integer", minimum: 0, description: "Full character length of a paged section." },
+    complete: { type: "boolean", description: "False when more of this section remains." },
+    truncated: { type: "boolean", description: "True when whole sections were dropped to fit the budget." },
+    droppedSections: { type: "array", items: { type: "string" }, description: "Sections to ask for one at a time." },
+    note: { type: "string", description: "How to fetch the rest." },
+  },
+  // Requested sections appear as their own keys, so this cannot be closed.
+  additionalProperties: true,
+} as const;
+
+export const STAGE_CONTRIBUTION_RESULT_SCHEMA = {
+  type: "object",
+  properties: {
+    ...REFUSAL_FIELDS,
+    status: {
+      type: "string",
+      enum: ["committed", "staged_awaiting_human_approval", "refused"],
+      description: "committed means a new sealed version exists. staged means a human must click Approve contribution.",
+    },
+    version: { type: "integer", minimum: 1, description: "The new version, when committed." },
+    baseVersion: { type: "integer", minimum: 1, description: "The version this proposal was written against." },
+    operationCount: { type: "integer", minimum: 0, description: "How many operations are awaiting review." },
+    currentVersion: { type: "integer", minimum: 1, description: "On a stale_base refusal: re-read at this version and propose again." },
+    problems: { type: "array", items: { type: "string" }, description: "On invalid_operation: one line per operation that cannot be applied." },
+  },
+  required: ["status"],
+} as const;
+
+export const SETTINGS_RESULT_SCHEMA = {
+  type: "object",
+  properties: {
+    ...REFUSAL_FIELDS,
+    status: { type: "string", enum: ["ok", "refused"], description: "ok means the settings below are the live values." },
+    settings: {
+      type: "object",
+      properties: {
+        requireApproval: { type: "boolean", description: "True when every write waits for a human click." },
+        retentionDays: { type: ["integer", "null"], minimum: 1, description: "Days until deletion, or null for never." },
+      },
+      required: ["requireApproval", "retentionDays"],
+      description: "The live settings after this call.",
+    },
+  },
+  required: ["status"],
 } as const;

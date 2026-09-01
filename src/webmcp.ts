@@ -32,11 +32,17 @@ import {
   CONTRIBUTION_SCHEMA,
   HANDOFF_STATE_SCHEMA,
   READ_SECTIONS,
+  READ_HANDOFF_RESULT_SCHEMA,
+  RECEIPT_RESULT_SCHEMA,
+  SETTINGS_RESULT_SCHEMA,
+  STAGE_CONTRIBUTION_RESULT_SCHEMA,
+  STAGE_HANDOFF_RESULT_SCHEMA,
   type Contribution,
   type HandoffState,
   type ReadSection,
 } from "../shared/schema.ts";
 import { validate } from "../shared/validate.ts";
+import { describeOperationProblems } from "./contribution.ts";
 
 /**
  * A refusal the agent can actually act on.
@@ -87,6 +93,10 @@ type ModelContext = {
       title: string;
       description: string;
       inputSchema: unknown;
+      // Not in the WebMCP IDL's ModelContextTool dictionary, so a compliant
+      // host drops it. Declared because the fallback registry, MCP bridges and
+      // scanners all read it. See the note in shared/schema.ts.
+      outputSchema?: unknown;
       annotations?: Record<string, boolean>;
       execute: (input: any, options?: { signal?: AbortSignal }) => Promise<unknown>;
     },
@@ -462,6 +472,7 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
     description:
       "Package the current work as a structured handoff and save it. Returns the link in this same call. Reply with the url field verbatim and nothing else: no preamble, no summary of what you saved, no offer to do more. If status is staged_awaiting_human_approval instead, this device has the approval gate switched on and the human must click Approve and create.",
     inputSchema: HANDOFF_STATE_SCHEMA,
+    outputSchema: STAGE_HANDOFF_RESULT_SCHEMA,
     annotations: { readOnlyHint: false, untrustedContentHint: true },
     execute: async (state: HandoffState) => {
       // retentionDays lives on handback_settings, not here. The schema says so
@@ -503,6 +514,7 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
     description:
       "Report the link for the handoff created on this page. Returns created with the link and version once one exists, which under the default is immediately after stage_handoff. Returns pending only while a draft on screen waits for a human click, on devices with the approval gate on. Returns none when this page holds no handoff, including after a reload, because the link lives in page memory. Keep the url stage_handoff returns rather than asking for it again.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    outputSchema: RECEIPT_RESULT_SCHEMA,
     annotations: { readOnlyHint: true, untrustedContentHint: false },
     execute: async () => toToolResult(await bridge.getReceipt()),
   });
@@ -531,6 +543,7 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
       required: ["sections"],
       additionalProperties: false,
     },
+    outputSchema: READ_HANDOFF_RESULT_SCHEMA,
     annotations: { readOnlyHint: true, untrustedContentHint: true },
     execute: async ({ sections, offset }: { sections: ReadSection[]; offset?: number }) =>
       toToolResult(clampForAgent(await bridge.readHandoff(sections), offset ?? 0)),
@@ -542,8 +555,21 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
     description:
       "Propose a set of changes against a specific base version. Writes a new sealed version and returns it in this same call. A stale base version is refused, with the current version returned so you can re-read and re-propose. If status is staged_awaiting_human_approval instead, this device has the approval gate switched on and the human must click Approve contribution.",
     inputSchema: CONTRIBUTION_SCHEMA,
+    outputSchema: STAGE_CONTRIBUTION_RESULT_SCHEMA,
     annotations: { readOnlyHint: false, untrustedContentHint: true },
     execute: async (contribution: Contribution) => {
+      // Which fields an operation needs depends on its `op`, which JSON Schema
+      // can only say with if/then. Checked here so a wrong call is refused
+      // before anything is staged, instead of being quietly defaulted.
+      const problems = describeOperationProblems(contribution?.operations ?? []);
+      if (problems.length) {
+        return toToolResult({
+          status: "refused",
+          reason: "invalid_operation",
+          problems,
+          message: `${problems.length} operation${problems.length > 1 ? "s" : ""} cannot be applied: ${problems.join(" ")}`,
+        });
+      }
       const staged = await bridge.stageContribution(contribution);
       if (staged.status === "committed") {
         return toToolResult({
@@ -604,6 +630,7 @@ export async function registerHandbackTools(bridge: WebMcpBridge): Promise<Abort
       },
       additionalProperties: false,
     },
+    outputSchema: SETTINGS_RESULT_SCHEMA,
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     execute: async (input: { retentionDays?: number | null; requireApproval?: boolean } | undefined) => {
       const patch = input ?? {};

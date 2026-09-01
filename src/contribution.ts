@@ -7,7 +7,7 @@
  * decision the owner put there, even with approval, because the reviewer is
  * far more likely to notice added text than quietly removed text.
  */
-import type { Contribution, HandoffDocument, Task } from "../shared/schema.ts";
+import type { Contribution, ContributionOp, HandoffDocument, Task } from "../shared/schema.ts";
 
 export class StaleBaseError extends Error {
   constructor(baseVersion: number, currentVersion: number) {
@@ -49,13 +49,19 @@ export function applyContribution(
         // An unmatched title is a real mismatch, not something to paper over by
         // inventing a task the reviewer never saw in the diff.
         if (!task) throw new Error(`No task titled "${operation.value}" to update.`);
-        task.status = (operation.status ?? "done") as Task["status"];
+        // No default. `?? "done"` used to sit here, which meant the one
+        // operation whose entire purpose is to set a status guessed it when it
+        // was missing, and guessed the most consequential value in the enum.
+        // Under auto-approval no human ever saw the guess. Callers are refused
+        // up front by describeOperationProblems; this is the backstop.
+        if (!operation.status) throw new Error(`set_task_status needs a status for "${operation.value}".`);
+        task.status = operation.status as Task["status"];
         break;
       }
       case "add_source":
         (state.sources ??= []).push({
           title: operation.value,
-          url: operation.url ?? "",
+          url: operation.url ?? "",  // refused before it gets here; see below
         });
         break;
       case "add_open_question":
@@ -107,4 +113,32 @@ export function describeContribution(contribution: Contribution): string[] {
         return `Unknown operation: ${operation.op}`;
     }
   });
+}
+
+
+/**
+ * Op-specific field requirements, checked before anything is staged.
+ *
+ * `op` and `value` are the only fields JSON Schema can mark required here,
+ * because which of the rest apply depends on `op` — and expressing that needs
+ * if/then, which validate.ts deliberately does not implement. A WebMCP grader
+ * flagged the gap on 2026-09-01 and it was a real one: an agent could send
+ * set_task_status with no status and get a silent "done".
+ *
+ * Returns one line per problem, empty when every operation can be applied.
+ * Callers turn this into a refusal VALUE, so a wrong call costs the agent one
+ * more round trip rather than a thrown error it cannot read.
+ */
+export function describeOperationProblems(operations: ContributionOp[]): string[] {
+  const problems: string[] = [];
+  operations.forEach((operation, index) => {
+    const at = `operations[${index}] (${operation.op})`;
+    if (operation.op === "set_task_status" && !operation.status) {
+      problems.push(`${at} needs a status of todo, in_progress, blocked or done. Nothing is assumed: say which.`);
+    }
+    if (operation.op === "add_source" && !operation.url) {
+      problems.push(`${at} needs a url. A source without one cannot be followed.`);
+    }
+  });
+  return problems;
 }

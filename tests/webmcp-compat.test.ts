@@ -159,6 +159,21 @@ describe("tool descriptors obey the documented constraints", () => {
     }
   });
 
+  it("declares a result schema for every tool, not just an input one", async () => {
+    // A WebMCP grader marked all five tools down on 2026-09-01 for the same
+    // thing: the return shape existed only in prose, so an agent had to infer
+    // url / status / version / created-pending-none from a description. The
+    // WebMCP IDL has no outputSchema member yet and a compliant host drops it,
+    // but the fallback registry, MCP bridges and scanners all read it.
+    for (const tool of await descriptors()) {
+      expect(tool.outputSchema, `${tool.name} has no outputSchema`).toBeTruthy();
+      expect(tool.outputSchema.type).toBe("object");
+      expect(() => JSON.stringify(tool.outputSchema)).not.toThrow();
+      // A shape with no documented status is not worth declaring.
+      expect(Object.keys(tool.outputSchema.properties ?? {}).length).toBeGreaterThan(0);
+    }
+  });
+
   it("declares an inputSchema that survives JSON.stringify", async () => {
     // registerTool rejects with TypeError if the schema cannot be serialised.
     for (const tool of await descriptors()) {
