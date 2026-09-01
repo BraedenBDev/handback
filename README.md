@@ -2,232 +2,143 @@
 
 **Hand off the work. Get it back intact.**
 
-*WeTransfer for AI conversations.*
+You spend an hour with an agent and it builds something worth keeping. Then you
+try to move it. ChatGPT cannot open a Claude artifact. Claude cannot open a
+Gemini one. Every vendor's workspace is a room with one door.
 
-You spend an hour with an agent and it builds something worth keeping. Now try
-to move it somewhere.
+So you paste the whole transcript and the next agent re-reads a conversation to
+work out what was already decided. Or you publish it to a gist and put your
+half-finished thinking on the open web.
 
-The canvas it lives in belongs to whoever made the assistant. ChatGPT cannot open
-a Claude artifact. Claude cannot open a Gemini one. Every vendor's workspace is a
-room with one door, and the key only turns from the inside.
+What you wanted was a USB stick. Handback is that, for work done with agents.
 
-That leaves two bad options. Paste the whole transcript somewhere and the next
-agent has to re-read a conversation to work out what was already decided. Or
-publish it to a gist, a shared doc, a pastebin, which works and also puts your
-half-finished thinking on the open web for a crawler to index.
-
-What you wanted was a USB stick.
-
-You hand someone a USB stick and it stops mattering whose laptop they own.
-Nothing got published. Nobody finds it unless you gave it to them. When it comes
-back, everything that happened to it comes back too.
-
-Handback is that, for work done with agents.
-
-- **One private link.** The contents are encrypted in your browser before they
-  leave it. The key travels in the URL fragment, which browsers never send to a
-  server, so the service holds ciphertext it cannot read.
-- **Any agent can pick it up.** Whoever built it. The page exposes its tools
-  through WebMCP, so a second agent reads structured state rather than
-  re-deriving it from prose.
-- **Nothing gets indexed.** Handoff pages send `X-Robots-Tag: noindex`, and the
-  id is 128 random bits, so a crawler cannot reach one it was not handed.
-  `robots.txt` deliberately does *not* disallow them: a crawler blocked from
-  fetching never reads the header, and the URL stays eligible for a bare result.
-  Letting it fetch costs nothing, since every route returns the same empty shell.
-- **It does not hang around forever.** Handoffs expire seven days after the last
-  change by default, and you pick the window when you create one. The countdown
-  slides, so something still being worked on does not vanish under whoever is
-  working on it.
-- **The work outlives the tools.** Every version is kept, and you can download
-  the whole thing as a file. If this service disappears tomorrow, you still have
-  it.
-
-**Live:** <https://handback.link> · **Source:** <https://github.com/BraedenBDev/handback>
+**Live:** <https://handback.link> · **Source:** <https://github.com/BraedenBDev/handback> · MIT
 
 Built for the [WebMCP Challenge](https://webmcp.devpost.com).
 
-## Why this is not just a file export
+## What it does
 
-If "ask your agent for a Markdown file" gets you the same result, this failed.
-The round trip is the difference:
+| | |
+|---|---|
+| **One private link** | Encrypted in your browser. The key rides in the URL fragment, which browsers never send to a server, so the service stores ciphertext it cannot read. |
+| **Any agent picks it up** | The page registers tools through WebMCP. A second agent reads structured state instead of re-deriving it from prose. |
+| **Changes come back as diffs** | An agent proposes against the version it read. You see the change before it is real. |
+| **Every version is kept** | Sealed with a hash bound to its parent. Reopen the same link later and see what happened while you were away. |
+| **Nothing is indexed** | Handoff pages send `X-Robots-Tag: noindex` and the id is 128 random bits. |
+| **It expires** | Seven days after the last change by default. You pick the window. Download a copy any time. |
 
-- Your agent packages structured state straight from its live context. Nobody
-  copies a transcript or learns a schema.
-- A second agent reads that state back as data it can act on.
-- That agent proposes changes against a specific version, and a human sees the
-  diff before anything becomes real.
-- What comes back carries its own history: who changed what, against which
-  version, sealed with a hash.
+Not just a file export: the round trip is the point. Your agent packages state
+straight from its live context, a second agent reads it back as data, and what
+returns carries its own history.
 
-## What using it looks like
+## Using it
 
-You have been working with an agent. You say:
+Tell the agent you are already talking to:
 
 > Hand this off to handback.link.
 
-It opens the page, packages what matters, and hands your agent the link in the
-same call. Nothing to click.
+It opens the page, packages what matters, and hands back the link in the same
+call. Nothing to click. That link is the whole artifact.
 
-You get one link. That is the whole artifact. Close everything else.
+Whoever opens it points their agent at it and asks what they are picking up.
+When they change something, you see a diff.
 
-It lives seven days by default, and you can pick 24 hours, 30 days or never on
-the page. The clock runs from the last change rather than from creation, so it
-resets each time someone contributes.
+## The five tools
 
-Send it to a friend, or keep it for yourself and open it next month. Whoever
-opens it points their agent at it and asks what they are picking up. The agent
-reads the state directly and continues, without re-deriving anything from a
-transcript.
-
-When they find something, their agent proposes it against the version they
-read. You see the change as a diff and decide. Every version is kept, so
-reopening the same link later shows you what happened while you were away.
-
-When a handoff does expire, the ciphertext is deleted. Nobody can recover it,
-including us: the server never held the key. Download a copy if it matters.
-
-If you would rather see every handoff before it is written, there is a switch.
-Flip it once and that browser starts asking.
-
-## Approval
-
-Your agent creates. You can ask to be asked.
-
-Auto-approval is the default: `stage_handoff` creates and hands your agent the
-link in the same call, and `stage_contribution` writes the new version, with no
-click in either path. The approval strip at the top of the page turns the gate
-back on for that browser, and the choice persists per device.
-
-Know what the default costs you. The click was the only thing between an agent
-and a public URL, so an agent that has been prompt-injected can mint a link
-carrying your conversation without anyone seeing it first. The content is
-encrypted before it leaves the browser and the key never reaches the server, but
-whoever holds the whole link can read it, and the agent that created it holds
-the whole link. Turn the gate on for anything you would not publish.
-
-The record survives either way, because storage appends. Every version's
-ciphertext is kept, so anything written without a click is still readable at the
-version before it. You lose the prompt, not the record.
-
-## The agent-callable surface
-
-Five tools, registered on the page through `document.modelContext.registerTool`:
+Registered on the page through `document.modelContext.registerTool`.
 
 | Tool | Does | Never does |
 |---|---|---|
-| `stage_handoff` | Saves and returns the link in one call | Reveal the key |
-| `get_handoff_receipt` | Reports pending, or the link once created | Create anything |
-| `read_handoff` | Returns requested sections of the open handoff | Reveal the key |
-| `stage_contribution` | Writes a new sealed version against a base version | Delete anything |
-| `handback_settings` | Reads settings; sets retention; switches the gate **on** | Switch the gate off |
+| `stage_handoff` | Saves and returns the link in one call | Reveals the key |
+| `get_handoff_receipt` | Reports `created`, `pending` or `none` | Creates anything |
+| `read_handoff` | Returns requested sections, paged | Reveals the key |
+| `stage_contribution` | Writes a new sealed version against a base version | Deletes anything |
+| `handback_settings` | Reads settings, sets retention, switches the gate **on** | Switches the gate off |
 
-With the gate switched on, `stage_handoff` and `stage_contribution` stage
-instead of writing, and return `staged_awaiting_human_approval` until a person
-clicks.
+**No `approve_*` or `commit_*` tool exists, and none will.** `handback_settings`
+is asymmetric on purpose: an agent can raise the bar, and `requireApproval:
+false` is refused. Lowering it would hand the last consent control to whatever
+agent is on the page, including one prompt-injected by the handoff it just read.
+A person turns the gate off with the button and nothing else can.
 
-**No `approve_*` or `commit_*` tool exists**, and none will. `handback_settings`
-is deliberately asymmetric for the same reason: an agent can switch the approval
-gate on, and `requireApproval: false` is refused. Raising the bar is always safe;
-lowering it would hand the last consent control to whatever agent is on the page,
-including one that has been prompt-injected by the handoff it just read. A person
-turns the gate off with the button, and nothing else can. `readOnlyHint` and
-`untrustedContentHint` are hints to the model, not enforcement, so treat them as
-documentation rather than a security control.
+Refusals are returned as values with a machine-readable `reason`, never thrown.
+WebMCP flattens a thrown error into a message the agent cannot act on.
 
-## Running it
+`readOnlyHint` and `untrustedContentHint` are hints to the model, not
+enforcement. Treat them as documentation.
+
+## Approval
+
+Auto-approval is the default. `stage_handoff` creates and returns the link in
+one call, with no click.
+
+Know what that costs. The click was the only thing between an agent and a
+public URL. Content is encrypted before it leaves the browser and the key never
+reaches the server, but whoever holds the whole link can read it, and the agent
+that created it holds the whole link. Turn the gate on for anything you would
+not publish. See [SECURITY.md](SECURITY.md).
+
+The record survives either way. Storage appends, so anything written without a
+click is still readable at the version before it.
+
+## Browser support
+
+| Setup | Result |
+|---|---|
+| Chrome 149 to 156 | Works with no flags. The deployed site runs the WebMCP origin trial. |
+| ChatGPT desktop, Site tools on | Works. |
+| Anything else | The page installs the registry itself, so any agent that runs JavaScript in the page reaches the same five tools. |
+| No agent at all | Every flow has a visible manual form, contributions included. |
+
+An extension sandboxed in an isolated world will not see the page-installed
+registry, because only a real browser implementation is visible from there.
+
+## Run it
 
 ```bash
 npm install
-npm start          # builds, then serves the Worker and client on :8787
+npm start          # builds, serves Worker and client on :8787
+npm run dev        # hot reload: client :5173, API :8787
+npm run test:all   # 210 node + 38 workerd + 57 end-to-end
 ```
 
-With hot reload:
+The suite doubles as the audit. It runs axe against both themes, guards
+contrast by parsing `src/style.css` so tokens cannot drift under 4.5:1, throws
+hostile input at the validator, and checks that reduced motion removes
+animations rather than shortening them.
 
-```bash
-npm run dev        # client on :5173, Worker API on :8787
-npm run test:all   # 181 node + 38 workerd + 44 end-to-end
-```
+API tests run inside workerd against the real Worker and a real local D1. The
+`native-webmcp` project runs the tools against Chromium's real
+`document.modelContext`; everything else drives a mock, and that project is what
+proves the mock is faithful.
 
-The suite doubles as the audit. It runs axe against both themes with zero
-violations, guards contrast by parsing `src/style.css` so tokens cannot drift
-under 4.5:1, asserts that agent-supplied markup renders as text, throws hostile
-input at `shared/validate.ts` where the trust boundary sits, and checks that
-reduced motion produces no animations rather than shorter ones.
+## Deploy
 
-API tests run inside workerd against the real Worker and a real local D1, built
-from `migrations/`. There is one implementation and these tests exercise it.
-
-The `native-webmcp` project runs the tool surface against Chromium's real
-`document.modelContext`, launched with `--enable-features=WebMCP`. Everything
-else in `e2e/` drives a faithful mock; that project is what proves the mock is
-faithful.
-
-### Browser setup
-
-Native WebMCP means Chrome 149+ (the deployed site runs the origin trial, so no
-flag is needed there; locally, `chrome://flags/#enable-webmcp-testing`), or
-ChatGPT's desktop browser with Site tools on.
-
-Without either, the page installs the registry itself. `document.modelContext`
-gets the same five tools with the same calling convention, so any agent that can
-run JavaScript on the page still drives it — that is the only route in a
-sandboxed agent-mode browser, which has neither the trial nor an extension. The
-status strip says which of the two is in play, and every flow also has a visible
-manual form, contributions included.
-
-Driving the tools from a console has two non-obvious requirements, and
-`ModelContext` is a moving target. See
-[docs/WEBMCP-COMPATIBILITY.md](docs/WEBMCP-COMPATIBILITY.md).
-
-## Deploying
-
-Production is a Cloudflare Worker with D1.
+Cloudflare Worker plus D1.
 
 ```bash
 npm run deploy
-npm run smoke
-```
-
-The smoke script runs the whole lifecycle over the network: create, reopen from
-the link alone, verify the seal, contribute, hit the lost-update guard, retrieve
-and decrypt earlier versions, and confirm handoff pages carry `noindex`.
-
-`handback.link` is the only origin. A zone-level Single Redirect sends `www` to
-it ahead of the Worker, so those requests never invoke the script, and static
-assets are served by the edge for the same reason.
-
-Schema changes live in `migrations/`:
-
-```bash
+npm run smoke      # full lifecycle over the network
 npx wrangler d1 execute handback --remote --file=./migrations/<file>.sql
 ```
 
-Migrations rename rather than drop, so you can reverse them.
+Migrations rename rather than drop, so they reverse.
 
-## Further reading
+## Where things are
+
+```
+shared/schema.ts     JSON Schema: one source of truth for tools and validation
+shared/validate.ts   The subset validator that walks it
+src/webmcp.ts        The five tool registrations and the fallback registry
+src/crypto.ts        AES-256-GCM, one key per handoff, reused across versions
+src/hash.ts          Content seals and the parent chain
+src/contribution.ts  Pure apply-a-contribution logic
+worker/index.ts      The Worker: API and asset serving
+```
+
+## More
 
 - [SECURITY.md](SECURITY.md) covers what the encryption protects and what it does not.
-- [docs/WEBMCP-COMPATIBILITY.md](docs/WEBMCP-COMPATIBILITY.md) is for anyone implementing WebMCP: where the entry point has moved, what the output limits are, and why nothing here throws.
-- [docs/DESIGN.md](docs/DESIGN.md) explains the typography, the colour, and the seal.
+- [docs/WEBMCP-COMPATIBILITY.md](docs/WEBMCP-COMPATIBILITY.md) is for anyone implementing WebMCP: where the entry point moved, output limits, why nothing throws.
 - [docs/PRIOR-ART-AND-NOGO.md](docs/PRIOR-ART-AND-NOGO.md) lists what was researched and rejected. Read it before proposing a feature.
-- [docs/archive/](docs/archive/) holds pre-build ideation, naming, and spec drafts, kept for the record. None of it describes current behaviour; start with the docs above instead.
-
-## Layout
-
-```
-shared/schema.ts     JSON Schema, one source of truth for WebMCP and validation
-shared/validate.ts   The subset validator that walks it, replacing Ajv
-src/hash.ts          Content seals and the parent chain
-src/crypto.ts        AES-256-GCM, one key per handoff, reused across versions
-src/webmcp.ts        The five tool registrations
-src/contribution.ts  Pure apply-a-contribution logic
-worker/index.ts      The Cloudflare Worker: API and asset serving
-migrations/          Schema, applied in order to a fresh database
-docs/                Design rationale, prior art, WebMCP compatibility notes
-docs/archive/        Pre-build product brief, naming, and spec drafts
-```
-
-## License
-
-MIT
+- [docs/DESIGN.md](docs/DESIGN.md) explains the typography, the colour and the seal.
