@@ -12,7 +12,11 @@ half-finished thinking on the open web.
 
 What you wanted was a USB stick. Handback is that, for work done with agents.
 
-**Live:** <https://handback.link> · **Source:** <https://github.com/BraedenBDev/handback> · MIT
+- **Live:** <https://handback.link>
+- **Video:** <https://youtu.be/S_4ibM1cJXc>
+- **Devpost:** <https://devpost.com/software/handback-universal-agent-handoff-links>
+- **Source:** <https://github.com/BraedenBDev/handback>
+- **License:** MIT
 
 Built for the [WebMCP Challenge](https://webmcp.devpost.com).
 
@@ -51,7 +55,7 @@ Registered on the page through `document.modelContext.registerTool`.
 |---|---|---|
 | `stage_handoff` | Saves and returns the link in one call | Reveals the key |
 | `get_handoff_receipt` | Reports `created`, `pending` or `none` | Creates anything |
-| `read_handoff` | Returns requested sections, paged | Reveals the key |
+| `read_handoff` | Returns requested sections, paged, at any version | Reveals the key |
 | `stage_contribution` | Writes a new sealed version against a base version | Deletes anything |
 | `handback_settings` | Reads settings, sets retention, switches the gate **on** | Switches the gate off |
 

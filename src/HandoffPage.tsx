@@ -8,7 +8,7 @@ import { downloadFile, toMarkdown, toPortableJson } from "./export.ts";
 import { isWebMcpAvailable, isWebMcpFallback, registerHandbackTools, type WebMcpBridge } from "./webmcp.ts";
 import { describeExpiry } from "../shared/expiry.ts";
 import { readAutoApprove, writeAutoApprove } from "./auto-approve.ts";
-import { ApprovalMode, BackToHome, ErrorNote, Field, HistoryView, Masthead, Seal, SiteFooter, StateView, ToolStatus } from "./ui.tsx";
+import { ApprovalMode, BackToHome, ErrorNote, Field, HistoryView, Masthead, Seal, SiteFooter, StateView, ToolStatus, VersionBanner } from "./ui.tsx";
 
 /** Shared by every WebMCP bridge method that has nothing to report yet because decryption hasn't finished. */
 const NOT_DECRYPTED_YET = "This handoff has not finished decrypting yet. Try again in a moment.";
@@ -32,6 +32,12 @@ export function HandoffPage({ id }: { id: string }) {
   // write. Regenerating it on update would invalidate the link already handed
   // out — the exact bug that sank the first implementation.
   const keyRef = useRef<CryptoKey | null>(null);
+  // Past versions are immutable once written, so one fetch each is enough.
+  const pastRef = useRef(new Map<number, HandoffDocument>());
+  // One piece of state, not three: the version on screen, its seal verdict and
+  // "am I in history" are the same fact asked three ways.
+  const [view, setView] = useState<{ doc: HandoffDocument; seal: SealVerdict } | null>(null);
+  const [viewError, setViewError] = useState<string | null>(null);
   const latest = useRef<{ doc: HandoffDocument | null }>({ doc: null });
   latest.current = { doc };
 
@@ -63,8 +69,40 @@ export function HandoffPage({ id }: { id: string }) {
     return latest.current.doc;
   }
 
+  // Reads an earlier version without disturbing what the page has open. The
+  // key is the same for every version, so this needs no extra permission.
+  async function loadVersion(version: number): Promise<HandoffDocument> {
+    const cached = pastRef.current.get(version);
+    if (cached) return cached;
+    const key = keyRef.current;
+    if (!key) throw new Error(NOT_DECRYPTED_YET);
+    const stored = await fetchHandoff(id, version);
+    const past = await decryptDocument(key, stored.envelope);
+    pastRef.current.set(version, past);
+    return past;
+  }
+
+  async function showVersion(version: number) {
+    if (!doc || version === doc.version) {
+      setView(null);
+      setViewError(null);
+      return;
+    }
+    try {
+      const past = await loadVersion(version);
+      setView({ doc: past, seal: await verifyDocument(past) });
+      setViewError(null);
+    } catch (cause) {
+      setViewError(cause instanceof Error ? cause.message : `Could not open version ${version}.`);
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
+    // Cached versions belong to the handoff that was open. Carrying them into
+    // a different id would serve another document's contents.
+    pastRef.current.clear();
+    setView(null);
     (async () => {
       try {
         const encoded = readKeyFromFragment(location.hash);
@@ -143,11 +181,25 @@ export function HandoffPage({ id }: { id: string }) {
         // page just has not finished decrypting yet.
         return { status: "none" as const, message: NOT_DECRYPTED_YET };
       },
-      readHandoff: async (sections: ReadSection[]) => {
+      readHandoff: async (sections: ReadSection[], version?: number) => {
         const current = await whenReadable();
         if (!current) return { error: NOT_DECRYPTED_YET };
-        const picked: Record<string, unknown> = { version: current.version };
-        for (const section of sections) picked[section] = current.state[section] ?? null;
+        let source = current;
+        if (version !== undefined && version !== current.version) {
+          if (version > current.version) {
+            return { error: `This handoff is at version ${current.version}. There is no version ${version}.` };
+          }
+          try {
+            source = await loadVersion(version);
+          } catch (cause) {
+            return { error: cause instanceof Error ? cause.message : `Could not read version ${version}.` };
+          }
+        }
+        const picked: Record<string, unknown> = {
+          version: source.version,
+          currentVersion: current.version,
+        };
+        for (const section of sections) picked[section] = source.state[section] ?? null;
         return picked;
       },
       stageContribution: async (contribution: Contribution) => {
@@ -163,6 +215,9 @@ export function HandoffPage({ id }: { id: string }) {
           return { status: "refused" as const, reason: "stale_base" as const, currentVersion: current.version };
         }
         setError(null);
+        // Leave history: the approve and reject controls live on the current
+        // version, and an agent has just told someone to click one of them.
+        setView(null);
         setStaged(contribution);
         // Read the preference at call time so flipping the switch takes effect
         // on the very next tool call.
@@ -279,6 +334,9 @@ export function HandoffPage({ id }: { id: string }) {
     );
   }
 
+  const shown = view?.doc ?? doc;
+  const shownSeal = view?.seal ?? seal;
+
   return (
     <main>
       <Masthead connect>
@@ -287,7 +345,7 @@ export function HandoffPage({ id }: { id: string }) {
             expires {describeExpiry(expiresAt)}
           </span>
         ) : null}
-        <Seal version={doc.version} hash={doc.contentHash} verdict={seal} />
+        <Seal version={shown.version} hash={shown.contentHash} verdict={shownSeal} />
       </Masthead>
 
       <BackToHome />
@@ -295,16 +353,20 @@ export function HandoffPage({ id }: { id: string }) {
       <div className="content-card">
       <ToolStatus available={webMcp} fallback={fallback} />
       <ApprovalMode />
-      <ErrorNote error={error} />
+      <ErrorNote error={viewError ?? error} />
 
-      {seal === "mismatch" ? (
+      {view ? (
+        <VersionBanner version={view.doc.version} currentVersion={doc.version} onBack={() => setView(null)} />
+      ) : null}
+
+      {shownSeal === "mismatch" ? (
         <p className="error" role="alert">
           This version's contents do not match its recorded seal. Something changed it outside the approval path.
           Treat everything below as unverified.
         </p>
       ) : null}
 
-      {staged ? (
+      {staged && !view ? (
         <section className="pending">
           <div className="pending-head">
             <span className="pending-mark" aria-hidden="true" />
@@ -328,10 +390,10 @@ export function HandoffPage({ id }: { id: string }) {
         </section>
       ) : null}
 
-      <StateView state={doc.state} from={staged ? 1 : 0} />
-      <HistoryView doc={doc} />
+      <StateView state={shown.state} from={staged ? 1 : 0} />
+      <HistoryView doc={doc} onSelect={showVersion} viewing={view?.doc.version} />
 
-      {!staged ? <ManualContributionForm baseVersion={doc.version} onStage={setStaged} /> : null}
+      {!staged && !view ? <ManualContributionForm baseVersion={doc.version} onStage={setStaged} /> : null}
 
       <Field label="Take it with you" index={10}>
         <p className="muted">

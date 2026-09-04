@@ -144,6 +144,34 @@ page-registered tools: Comet is an MCP client for external servers, and Anthropi
 declined the feature. Firefox and Safari have only reached standards-position
 discussion.
 
+## Client support, observed 2026-09-03
+
+Unlike everything above, this section is observation and not test. It records
+what three automation clients did on one afternoon, and any of them can move.
+
+**No automation client speaks WebMCP yet.** Playwright 1.62, Playwright MCP and
+Vercel's agent-browser 0.26 have no tool discovery and no tool calling, and none
+of them mentions WebMCP in its documentation. What works everywhere is
+evaluating `document.modelContext` in the page, so treat driving the tools as an
+eval convention rather than a client feature.
+
+**Playwright's bundled Chromium 151 is the reliable host.** Launched with
+`--enable-features=WebMCP` it exposes native `document.modelContext`,
+`getTools()` returns all five Handback tools, and `executeTool` on
+`handback_settings` comes back with the live settings.
+
+**agent-browser 0.26 bundles Chrome 146, which is too old.** Chrome moved the
+surface to `document.modelContext` in 149, so 146 with the flag exposes only
+`navigator.modelContext` and its `registerTool`. The page registers its tools
+and nothing can call them. Pointing agent-browser at Playwright's Chromium with
+`--executable-path` fixes it and the same native call succeeds.
+
+**Check which path you are on before you believe a result.** With no flag set,
+Handback installs its own shim on `document` and `navigator`, and calls against
+it work perfectly well. `isHandbackFallback` is true there. That is the
+fallback, not WebMCP, and a green result on that path says nothing about the
+browser.
+
 ## Driving the tools by hand
 
 Two requirements the draft spec leaves out:

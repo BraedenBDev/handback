@@ -173,3 +173,45 @@ test("a section too large for one response comes back paged, not dropped", async
   }
   expect(assembled).toBe(longSummary);
 });
+
+test("an agent walks back through versions, and a person can click through them", async ({ page }) => {
+  await requireApproval(page);
+  await page.goto("/");
+  await call(page, "stage_handoff", {
+    objective: "Version walk",
+    summary: "The original summary.",
+    tasks: [{ title: "Start", status: "in_progress" }],
+  });
+  await page.getByRole("button", { name: "Approve and create" }).click();
+  const url = await page.locator("input.link").inputValue();
+
+  const second = await page.context().newPage();
+  await requireApproval(second);
+  await second.goto(url);
+  await call(second, "stage_contribution", {
+    baseVersion: 1,
+    note: "Rewrote the summary",
+    operations: [{ op: "set_summary", value: "The replacement summary." }],
+  });
+  await second.getByRole("button", { name: "Approve contribution" }).click();
+  await expect(second.locator(".seal .seal-version")).toHaveText("v2");
+
+  // Current read: no version asked for, so the newest content comes back.
+  const now = await call(second, "read_handoff", { sections: ["summary"] });
+  expect(now).toMatchObject({ version: 2, summary: "The replacement summary." });
+
+  // Walking back one version returns the original, and says how far back it is.
+  const before = await call(second, "read_handoff", { sections: ["summary"], version: 1 });
+  expect(before).toMatchObject({ version: 1, currentVersion: 2, summary: "The original summary." });
+
+  // A version that does not exist is refused as a value, not thrown.
+  const ahead = await call(second, "read_handoff", { sections: ["summary"], version: 9 });
+  expect(ahead.error).toContain("version 9");
+
+  // The same journey by hand: click v1 in History, read it, come back.
+  await second.getByRole("button", { name: /v1/ }).click();
+  await expect(second.getByText("Viewing version 1 of 2")).toBeVisible();
+  await expect(second.getByText("The original summary.")).toBeVisible();
+  await second.getByRole("button", { name: "Back to current" }).click();
+  await expect(second.getByText("The replacement summary.")).toBeVisible();
+});

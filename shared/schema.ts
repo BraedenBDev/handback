@@ -311,6 +311,7 @@ export const READ_HANDOFF_RESULT_SCHEMA = {
   type: "object",
   properties: {
     version: { type: "integer", minimum: 1, description: "Version these sections were read from. Pass it back as baseVersion." },
+    currentVersion: { type: "integer", minimum: 1, description: "Latest version of this handoff. Differs from version when you asked for an earlier one." },
     error: { type: "string", description: "Present instead of content when no handoff is open on this page." },
     offset: { type: "integer", minimum: 0, description: "Where this slice of a paged section started." },
     nextOffset: { type: "integer", minimum: 0, description: "Pass as offset to continue. Absent when complete." },

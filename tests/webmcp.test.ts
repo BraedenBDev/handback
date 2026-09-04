@@ -163,7 +163,27 @@ describe("tool behaviour", () => {
     await registerHandbackTools(makeBridge({ readHandoff }));
     const tool = registered.find((t) => t.name === "read_handoff")!;
     await tool.execute({ sections: ["objective", "tasks"] });
-    expect(readHandoff).toHaveBeenCalledWith(["objective", "tasks"]);
+    expect(readHandoff).toHaveBeenCalledWith(["objective", "tasks"], undefined);
+  });
+
+  it("read_handoff passes an explicit version through to the bridge", async () => {
+    const registered = installFakeModelContext();
+    const readHandoff = vi.fn(() => ({ objective: "o", version: 2, currentVersion: 5 }));
+    await registerHandbackTools(makeBridge({ readHandoff }));
+    const tool = registered.find((t) => t.name === "read_handoff")!;
+    const result = unwrap(await tool.execute({ sections: ["objective"], version: 2 }));
+    expect(readHandoff).toHaveBeenCalledWith(["objective"], 2);
+    // currentVersion is what tells an agent it is looking at history rather
+    // than the version it should propose against.
+    expect(result).toMatchObject({ version: 2, currentVersion: 5 });
+  });
+
+  it("read_handoff advertises version in its input schema", async () => {
+    const registered = installFakeModelContext();
+    await registerHandbackTools(makeBridge());
+    const tool = registered.find((t) => t.name === "read_handoff")!;
+    const props = (tool.inputSchema as { properties: Record<string, { type?: string; minimum?: number }> }).properties;
+    expect(props.version).toMatchObject({ type: "integer", minimum: 1 });
   });
 
   it("read_handoff only offers sections the schema allows", async () => {

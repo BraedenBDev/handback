@@ -254,22 +254,92 @@ export function StateView({ state, from = 0 }: { state: HandoffState; from?: num
   );
 }
 
-export function HistoryView({ doc }: { doc: HandoffDocument }) {
+export function HistoryView({
+  doc,
+  onSelect,
+  viewing,
+}: {
+  doc: HandoffDocument;
+  onSelect?: (version: number) => void;
+  viewing?: number;
+}) {
   if (!doc.history.length) return null;
+  // The history array holds one entry per contribution, so it starts at v2.
+  // Version 1 gets a row of its own or there is no way back to the original.
+  const rows = [
+    ...doc.history.map((entry) => ({
+      version: entry.version,
+      note: entry.note,
+      when: entry.approvedAt,
+    })),
+    { version: 1, note: "Original", when: doc.createdAt },
+  ].sort((a, b) => b.version - a.version);
+  const latest = rows[0]!.version;
   return (
     <Field label="History" index={9}>
+      {onSelect ? <p className="history-hint">Read any earlier version. Nothing is overwritten.</p> : null}
       <ul className="history">
-        {doc.history.map((entry) => (
-          <li key={entry.version}>
-            <span className="history-when">v{entry.version}</span>
-            <span>
-              {entry.note}
-              <div className="history-when">{new Date(entry.approvedAt).toLocaleString()}</div>
-            </span>
-          </li>
-        ))}
+        {rows.map((entry) => {
+          const isShown = (viewing ?? latest) === entry.version;
+          const body = (
+            <>
+              <span className="history-when">v{entry.version}</span>
+              <span>
+                {entry.note}
+                <div className="history-when">{new Date(entry.when).toLocaleString()}</div>
+              </span>
+            </>
+          );
+          return (
+            <li key={entry.version}>
+              {onSelect ? (
+                // The whole row is the target. A version number alone is a 13px
+                // hit area, and the note beside it is what the eye goes to.
+                <button
+                  type="button"
+                  className="history-row"
+                  aria-current={isShown ? "true" : undefined}
+                  onClick={() => onSelect(entry.version)}
+                >
+                  {body}
+                  <span className="history-go" aria-hidden="true">
+                    {isShown ? "showing" : "read"}
+                  </span>
+                </button>
+              ) : (
+                <div className="history-row">{body}</div>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </Field>
+  );
+}
+
+/**
+ * Shown only while an earlier version is on screen. It has to say plainly that
+ * this is not current, because everything else on the page looks identical and
+ * contributing against a stale version is the mistake it exists to prevent.
+ */
+export function VersionBanner({
+  version,
+  currentVersion,
+  onBack,
+}: {
+  version: number;
+  currentVersion: number;
+  onBack: () => void;
+}) {
+  return (
+    <div className="viewing-past" role="status">
+      <span>
+        Viewing version {version} of {currentVersion}. This is history, so it cannot be changed.
+      </span>
+      <button type="button" className="quiet" onClick={onBack}>
+        Back to current
+      </button>
+    </div>
   );
 }
 

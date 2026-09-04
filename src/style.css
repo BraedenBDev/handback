@@ -535,13 +535,53 @@ button.quiet:hover:not(:disabled) { color: var(--ink); border-color: var(--rule)
 /* --- history ------------------------------------------------------------- */
 
 .history { list-style: none; margin: 0; padding: 0; }
-.history li {
+.history li { border-bottom: 1px dotted var(--rule); }
+.history-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+/* The row is the control, not the version number: a 13px target beside a
+   598px sentence reads as a label, and people click the sentence. */
+.history-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.9rem;
   align-items: baseline;
-  padding: 0.5rem 0;
-  border-bottom: 1px dotted var(--rule);
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 0.55rem 0.6rem;
+  margin: 0 -0.6rem;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+button.history-row { cursor: pointer; }
+.history-go {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--amber);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  button.history-row:hover { background: var(--amber-surface); }
+  button.history-row:hover .history-go { opacity: 1; }
+}
+button.history-row:focus-visible { background: var(--amber-surface); }
+button.history-row:focus-visible .history-go { opacity: 1; }
+button.history-row:active { transform: scale(0.995); }
+button.history-row[aria-current="true"] {
+  cursor: default;
+  background: var(--paper-sunken);
+}
+button.history-row[aria-current="true"] .history-go { opacity: 1; color: var(--ink-muted); }
+@media (prefers-reduced-motion: reduce) {
+  button.history-row:active { transform: none; }
 }
 .history li:last-child { border-bottom: none; }
 .history-when {

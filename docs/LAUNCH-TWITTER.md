@@ -229,7 +229,7 @@ Separate post a few hours later, so the video post owns the morning.
 >
 > https://github.com/BraedenBDev/handback
 >
-> Five WebMCP tools, 192 unit tests, 50 browser tests including one that runs
+> Five WebMCP tools, 250 unit tests, 58 browser tests including one that runs
 > against a real `document.modelContext` rather than a mock.
 
 > If you're implementing WebMCP, `docs/WEBMCP-COMPATIBILITY.md` is the file to
@@ -285,6 +285,6 @@ without a comment adds nothing and gets you nothing.
 distribution and it is the one input you fully control.
 
 **Never invent a number.** No users, no stars, no testimonials. You do have five
-tools, 192 unit tests, 50 browser tests, a spec that moved twice, and a real
+tools, 250 unit tests, 58 browser tests, a spec that moved twice, and a real
 ChatGPT session that gave up and scraped the page. Those are true, specific, and
 more interesting than anything you could round up to.

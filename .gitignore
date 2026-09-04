@@ -8,3 +8,12 @@ e2e.sqlite
 test-results/
 playwright-report/
 .wrangler/
+
+# Local secrets. Neither file exists today; these are here so that stays true.
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+video/renders/
+video/snapshots/
+video/.hyperframes/
