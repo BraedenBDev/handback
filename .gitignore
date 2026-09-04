@@ -14,6 +14,11 @@ playwright-report/
 .env.*
 .dev.vars
 .dev.vars.*
-video/renders/
-video/snapshots/
-video/.hyperframes/
+# Local production notes, submission drafts, and media workspaces.
+/docs/DEVPOST-FORM.md
+/docs/LAUNCH-DISCORD.md
+/docs/LAUNCH-TWITTER.md
+/docs/SUBMISSION.md
+/docs/archive/
+/prototype/
+/video/
