@@ -37,15 +37,23 @@ returns carries its own history.
 
 ## Using it
 
-Tell the agent you are already talking to:
+Tell the agent you are already talking to. For example:
 
-> Hand this off to handback.link.
+- `Save on handback.link.`
+- `Save this session to handback.link.`
+- `Hand this off to handback.link.`
 
 It opens the page, packages what matters, and hands back the link in the same
-call. Nothing to click. That link is the whole artifact.
+call. With the default auto-approval setting, there is nothing to click. That
+link is the whole artifact.
 
 Whoever opens it points their agent at it and asks what they are picking up.
 When they change something, you see a diff.
+
+**Current compatibility:** Native WebMCP support currently works in ChatGPT
+Desktop when you are in a Work workspace or a Codex chat, with Site Tools on
+and Handback open in the embedded browser. Other agents can use the same flow
+when they have browser automation access to Chrome 149 or newer.
 
 ## The five tools
 
@@ -89,10 +97,9 @@ click is still readable at the version before it.
 
 | Setup | Result |
 |---|---|
-| Chrome 149 to 156 | Works with no flags. The deployed site runs the WebMCP origin trial. |
-| ChatGPT desktop, Site tools on | Works. |
-| Anything else | The page installs the registry itself, so any agent that runs JavaScript in the page reaches the same five tools. |
-| No agent at all | Every flow has a visible manual form, contributions included. |
+| ChatGPT Desktop | Native WebMCP in a Work workspace or Codex chat, with Site Tools on and Handback open in the embedded browser. |
+| Other agents | Works when the agent has browser automation access to Chrome 149 or newer. |
+| No compatible agent | Every flow has a visible manual form, contributions included. |
 
 An extension sandboxed in an isolated world will not see the page-installed
 registry, because only a real browser implementation is visible from there.
